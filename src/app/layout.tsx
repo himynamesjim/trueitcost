@@ -23,6 +23,17 @@ export default function RootLayout({
       <body className="antialiased">
         <ThemeProvider>
           {children}
+          <footer className="border-t border-slate-200 dark:border-slate-700 py-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+            Powered by{' '}
+            <a
+              href="https://www.techsolutions.cc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline underline-offset-2 transition-colors"
+            >
+              InterPeak Technology Solutions
+            </a>
+          </footer>
         </ThemeProvider>
       </body>
     </html>
