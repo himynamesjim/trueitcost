@@ -1094,6 +1094,95 @@ export default function AISolutionsArchitect() {
             </div>
             </div>
           </main>
+
+          {/* Resize Handle - Right */}
+          <div
+            onMouseDown={handleResizeRight}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          />
+
+          {/* Right Panel - Chat */}
+          <aside style={{
+            width: `${rightWidth}px`,
+            borderLeft: "1px solid rgba(255,255,255,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            background: "#0a0d14",
+            height: "100%",
+            overflow: "hidden",
+          }}>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>💬</span>
+                Ask AI Architect
+              </h3>
+            </div>
+            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column" }}>
+              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
+                Ask any questions about your IT infrastructure needs, or start by selecting a project type above.
+              </p>
+              <textarea
+                value={modificationRequest}
+                onChange={(e) => setModificationRequest(e.target.value)}
+                placeholder="e.g., I need a complete UCaaS solution for 50 users with Microsoft Teams integration, or What's the best firewall for a small office?"
+                style={{
+                  width: "100%",
+                  flex: "1",
+                  minHeight: "200px",
+                  maxHeight: "calc(100vh - 350px)",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(0,0,0,0.3)",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "none",
+                  marginBottom: "16px",
+                  overflowY: "auto",
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    // Handle chat request
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  // Handle chat request
+                  alert("Chat functionality coming soon! For now, please select a project type above to get started.");
+                }}
+                disabled={!modificationRequest.trim()}
+                style={{
+                  width: "100%",
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: modificationRequest.trim() ? "linear-gradient(135deg, #0ea5e9, #8b5cf6)" : "rgba(255,255,255,0.1)",
+                  color: modificationRequest.trim() ? "#fff" : "#64748b",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: modificationRequest.trim() ? "pointer" : "not-allowed",
+                  fontFamily: "inherit",
+                  flexShrink: 0,
+                }}
+              >
+                Ask AI Architect
+              </button>
+            </div>
+          </aside>
         </div>
       </div>
     );
