@@ -1171,14 +1171,17 @@ export default function AISolutionsArchitect() {
   if (view === 'configure' && showResult && category) {
     const rec = apiResult;
     return (
-      <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
+      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
         <div style={{
-          minHeight: "calc(100vh - 80px)",
+          flex: 1,
           background: "#0c0f18",
           color: "#e2e8f0",
-          fontFamily: "'Outfit', sans-serif"
+          fontFamily: "'Outfit', sans-serif",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -1195,7 +1198,7 @@ export default function AISolutionsArchitect() {
             .fab-btn-quote:hover { filter: brightness(1.1); box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important; }
           `}</style>
 
-          <header style={{ padding: "20px 40px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <header style={{ padding: "20px 40px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <button onClick={() => setView('home')} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: "13px", fontFamily: "inherit" }}>← Back</button>
               <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
@@ -1204,7 +1207,7 @@ export default function AISolutionsArchitect() {
             </div>
           </header>
 
-          <div style={{ display: "flex", height: "calc(100vh - 80px)", overflow: "hidden" }}>
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
             {/* Left Panel - Saved Solutions */}
             <aside style={{
               width: `${leftWidth}px`,
@@ -1313,7 +1316,8 @@ export default function AISolutionsArchitect() {
             />
 
             {/* Main Content */}
-            <main style={{ flex: "1", minWidth: 0, overflowY: "auto", padding: "48px 40px" }}>
+            <main style={{ flex: "1", minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "48px 40px", paddingBottom: "100px" }}>
 
             {/* Error state */}
             {apiError && (
@@ -1516,9 +1520,10 @@ export default function AISolutionsArchitect() {
                 )}
               </>
             )}
+            </div>
 
             {/* Action Bar */}
-            <div style={{ position: "sticky", bottom: 0, display: "flex", justifyContent: "center", padding: "16px 0", background: "linear-gradient(to top, #0c0f18 60%, transparent)", zIndex: 40 }}>
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "center", padding: "16px 0", background: "linear-gradient(to top, #0c0f18 60%, transparent)", zIndex: 40, pointerEvents: "none" }}>
               <div style={{
                 display: "flex",
                 alignItems: "center",
@@ -1529,6 +1534,7 @@ export default function AISolutionsArchitect() {
                 backdropFilter: "blur(16px)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                pointerEvents: "auto",
               }}>
                 <button
                   className="fab-btn fab-btn-start"
