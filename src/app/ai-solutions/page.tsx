@@ -1026,14 +1026,14 @@ export default function AISolutionsArchitect() {
           />
 
           {/* Main Content */}
-          <main style={{ flex: 1, overflowY: "auto", padding: "60px 40px", position: "relative" }}>
+          <main style={{ flex: 1, overflowY: "auto", padding: "40px 40px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {/* Ambient background */}
             <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-            <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+            <div style={{ maxWidth: "1000px", width: "100%", position: "relative", zIndex: 1 }}>
             {/* Hero */}
-            <div style={{ textAlign: "center", marginBottom: "64px", animation: "slideUp 0.8s ease" }}>
+            <div style={{ textAlign: "center", marginBottom: "48px", animation: "slideUp 0.8s ease" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 14px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "20px", fontSize: "13px", color: "#38bdf8" }}>
                 <SparkIcon /> AI-Powered Solutions Architecture
               </div>
@@ -1047,7 +1047,7 @@ export default function AISolutionsArchitect() {
             </div>
 
             {/* Category Grid */}
-            <div style={{ marginBottom: "64px" }}>
+            <div>
               <h2 style={{ fontSize: "13px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "20px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both" }}>Choose your project type</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "12px" }}>
                 {CATEGORIES.map((cat, i) => (
