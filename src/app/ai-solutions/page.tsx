@@ -897,7 +897,8 @@ export default function AISolutionsArchitect() {
   // HOME VIEW
   if (view === 'home') {
     return (
-      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <>
+      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
         <div style={{
@@ -1026,7 +1027,7 @@ export default function AISolutionsArchitect() {
           />
 
           {/* Main Content */}
-          <main style={{ flex: 1, overflow: "hidden", padding: "20px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <main style={{ flex: 1, overflow: "hidden", padding: "20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "40px" }}>
             {/* Ambient background */}
             <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -1185,6 +1186,7 @@ export default function AISolutionsArchitect() {
           </aside>
         </div>
       </div>
+      </>
     );
   }
 
@@ -1370,7 +1372,7 @@ export default function AISolutionsArchitect() {
   if (view === 'configure' && showResult && category) {
     const rec = apiResult;
     return (
-      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
         <div style={{
