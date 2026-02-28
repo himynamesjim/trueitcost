@@ -1048,8 +1048,8 @@ export default function AISolutionsArchitect() {
 
             {/* Category Grid */}
             <div>
-              <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both" }}>Choose your project type</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "12px" }}>
+              <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both", textAlign: "center" }}>Choose your project type</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", maxWidth: "800px", margin: "0 auto" }}>
                 {CATEGORIES.map((cat, i) => (
                   <div
                     key={cat.id}
