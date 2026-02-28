@@ -682,7 +682,6 @@ export default function AISolutionsArchitect() {
   const [selectedTier, setSelectedTier] = useState<number>(1); // default to "Better"
   const [modificationRequest, setModificationRequest] = useState<string>('');
   const [isModifying, setIsModifying] = useState<boolean>(false);
-  const [showModificationChat, setShowModificationChat] = useState<boolean>(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const category = CATEGORIES.find(c => c.id === selectedCategory);
@@ -815,7 +814,6 @@ export default function AISolutionsArchitect() {
       const parsed = JSON.parse(text);
       setApiResult(parsed);
       setModificationRequest('');
-      setShowModificationChat(false);
     } catch (err: any) {
       alert(err.message || 'Failed to modify solution');
     } finally {
@@ -1137,7 +1135,9 @@ export default function AISolutionsArchitect() {
             </div>
           </header>
 
-          <main style={{ maxWidth: "800px", margin: "0 auto", padding: "48px 40px" }}>
+          <div style={{ display: "flex", gap: "24px", maxWidth: "1400px", margin: "0 auto", padding: "48px 40px" }}>
+            {/* Main Content */}
+            <main style={{ flex: "1", minWidth: 0 }}>
 
             {/* Error state */}
             {apiError && (
@@ -1341,116 +1341,6 @@ export default function AISolutionsArchitect() {
               </>
             )}
 
-            {/* Modification Chat Bubble */}
-            <div style={{ marginBottom: "24px", animation: "slideUp 0.6s ease 0.8s both" }}>
-              {!showModificationChat ? (
-                <button
-                  onClick={() => setShowModificationChat(true)}
-                  style={{
-                    padding: "14px 20px",
-                    borderRadius: "12px",
-                    border: `2px solid ${category?.color}40`,
-                    background: `${category?.color}10`,
-                    color: category?.color,
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    margin: "0 auto",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${category?.color}20`;
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `${category?.color}10`;
-                    e.currentTarget.style.transform = "translateY(0)";
-                  }}
-                >
-                  <span style={{ fontSize: "18px" }}>💬</span>
-                  Need Changes? Click to Modify Recommendations
-                </button>
-              ) : (
-                <div style={{
-                  padding: "20px",
-                  borderRadius: "12px",
-                  border: `2px solid ${category?.color}40`,
-                  background: `${category?.color}08`,
-                  maxWidth: "700px",
-                  margin: "0 auto",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                    <span style={{ fontSize: "20px" }}>💬</span>
-                    <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#e2e8f0", margin: 0 }}>Modify Recommendations</h4>
-                  </div>
-                  <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "12px", lineHeight: 1.5 }}>
-                    Ask for changes like "use HP servers instead of Dell", "add more storage", or "show me a lower-cost option"
-                  </p>
-                  <textarea
-                    value={modificationRequest}
-                    onChange={(e) => setModificationRequest(e.target.value)}
-                    placeholder="e.g., Can you replace Dell with HP servers? or Show me Fortinet instead of Cisco"
-                    style={{
-                      width: "100%",
-                      minHeight: "80px",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      background: "rgba(0,0,0,0.3)",
-                      color: "#e2e8f0",
-                      fontSize: "14px",
-                      fontFamily: "inherit",
-                      resize: "vertical",
-                      marginBottom: "12px",
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.ctrlKey) {
-                        handleModificationRequest();
-                      }
-                    }}
-                  />
-                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                    <button
-                      onClick={() => { setShowModificationChat(false); setModificationRequest(''); }}
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        background: "transparent",
-                        color: "#94a3b8",
-                        fontSize: "13px",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleModificationRequest}
-                      disabled={!modificationRequest.trim() || isModifying}
-                      style={{
-                        padding: "8px 20px",
-                        borderRadius: "8px",
-                        border: "none",
-                        background: modificationRequest.trim() && !isModifying ? `linear-gradient(135deg, ${category?.color}, ${category?.color}cc)` : "rgba(255,255,255,0.1)",
-                        color: modificationRequest.trim() && !isModifying ? "#fff" : "#64748b",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        cursor: modificationRequest.trim() && !isModifying ? "pointer" : "not-allowed",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {isModifying ? "Updating..." : "Update Recommendations"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Action Bar */}
             <div style={{ position: "sticky", bottom: 0, display: "flex", justifyContent: "center", padding: "16px 0", background: "linear-gradient(to top, #0c0f18 60%, transparent)", zIndex: 40 }}>
               <div style={{
@@ -1499,6 +1389,77 @@ export default function AISolutionsArchitect() {
               </div>
             </div>
           </main>
+
+          {/* Chat Sidebar */}
+          <aside style={{
+            width: "380px",
+            position: "sticky",
+            top: "80px",
+            alignSelf: "flex-start",
+            height: "calc(100vh - 140px)",
+            display: "flex",
+            flexDirection: "column",
+          }}>
+            <div style={{
+              padding: "20px",
+              borderRadius: "12px",
+              border: `2px solid ${category?.color}40`,
+              background: `${category?.color}08`,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                <span style={{ fontSize: "20px" }}>💬</span>
+                <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#e2e8f0", margin: 0 }}>Modify Recommendations</h4>
+              </div>
+              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
+                Ask for changes like "use HP servers instead of Dell", "add more storage", or "show me a lower-cost option"
+              </p>
+              <textarea
+                value={modificationRequest}
+                onChange={(e) => setModificationRequest(e.target.value)}
+                placeholder="e.g., Can you replace Dell with HP servers? or Show me Fortinet instead of Cisco"
+                style={{
+                  width: "100%",
+                  flex: "1",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(0,0,0,0.3)",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "none",
+                  marginBottom: "16px",
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    handleModificationRequest();
+                  }
+                }}
+              />
+              <button
+                onClick={handleModificationRequest}
+                disabled={!modificationRequest.trim() || isModifying}
+                style={{
+                  width: "100%",
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: modificationRequest.trim() && !isModifying ? `linear-gradient(135deg, ${category?.color}, ${category?.color}cc)` : "rgba(255,255,255,0.1)",
+                  color: modificationRequest.trim() && !isModifying ? "#fff" : "#64748b",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: modificationRequest.trim() && !isModifying ? "pointer" : "not-allowed",
+                  fontFamily: "inherit",
+                }}
+              >
+                {isModifying ? "Updating..." : "Update Recommendations"}
+              </button>
+            </div>
+          </aside>
+        </div>
         </div>
       </div>
     );
