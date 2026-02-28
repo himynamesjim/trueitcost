@@ -1026,29 +1026,29 @@ export default function AISolutionsArchitect() {
           />
 
           {/* Main Content */}
-          <main style={{ flex: 1, overflowY: "auto", padding: "40px 40px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <main style={{ flex: 1, overflow: "hidden", padding: "20px 30px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {/* Ambient background */}
             <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-            <div style={{ maxWidth: "1000px", width: "100%", position: "relative", zIndex: 1 }}>
+            <div style={{ maxWidth: "900px", width: "100%", position: "relative", zIndex: 1 }}>
             {/* Hero */}
-            <div style={{ textAlign: "center", marginBottom: "48px", animation: "slideUp 0.8s ease" }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 14px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "20px", fontSize: "13px", color: "#38bdf8" }}>
+            <div style={{ textAlign: "center", marginBottom: "32px", animation: "slideUp 0.8s ease" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 12px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "16px", fontSize: "12px", color: "#38bdf8" }}>
                 <SparkIcon /> AI-Powered Solutions Architecture
               </div>
-              <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "16px" }}>
+              <h1 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "12px" }}>
                 Design your IT solution<br />
                 <span style={{ background: "linear-gradient(135deg, #0ea5e9, #8b5cf6, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>in minutes, not weeks</span>
               </h1>
-              <p style={{ fontSize: "17px", color: "#64748b", maxWidth: "560px", margin: "0 auto", lineHeight: 1.6 }}>
+              <p style={{ fontSize: "15px", color: "#64748b", maxWidth: "520px", margin: "0 auto", lineHeight: 1.5 }}>
                 Tell us what you need. Our AI architect will design a complete, vendor-neutral solution with real pricing — no sales calls required.
               </p>
             </div>
 
             {/* Category Grid */}
             <div>
-              <h2 style={{ fontSize: "13px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "20px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both" }}>Choose your project type</h2>
+              <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both" }}>Choose your project type</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "12px" }}>
                 {CATEGORIES.map((cat, i) => (
                   <div
@@ -1059,34 +1059,34 @@ export default function AISolutionsArchitect() {
                       // @ts-ignore
                       "--accent": cat.color,
                       "--glow": cat.color + "20",
-                      padding: "24px",
-                      borderRadius: "12px",
+                      padding: "18px",
+                      borderRadius: "10px",
                       border: "1px solid rgba(255,255,255,0.06)",
                       background: "rgba(255,255,255,0.02)",
                       cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
                       display: "flex",
                       alignItems: "flex-start",
-                      gap: "16px",
+                      gap: "14px",
                       animation: `slideUp 0.6s ease ${0.1 + i * 0.05}s both`
                     }}
                   >
                     <div style={{
-                      width: "44px", height: "44px", borderRadius: "10px",
+                      width: "40px", height: "40px", borderRadius: "8px",
                       background: `${cat.color}15`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "22px", flexShrink: 0
+                      fontSize: "20px", flexShrink: 0
                     }}>
                       {cat.icon}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "4px" }}>{cat.title}</h3>
+                        <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "3px" }}>{cat.title}</h3>
                         <span className="cat-arrow" style={{ color: "#475569", opacity: 0, transition: "all 0.3s" }}>
                           <ArrowRight />
                         </span>
                       </div>
-                      <p style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>{cat.subtitle}</p>
+                      <p style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.4 }}>{cat.subtitle}</p>
                     </div>
                   </div>
                 ))}
