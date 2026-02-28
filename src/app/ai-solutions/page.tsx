@@ -897,16 +897,16 @@ export default function AISolutionsArchitect() {
   // HOME VIEW
   if (view === 'home') {
     return (
-      <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
+      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
         <div style={{
-          minHeight: "calc(100vh - 80px)",
+          flex: 1,
           background: "#0c0f18",
           color: "#e2e8f0",
           fontFamily: "'Outfit', sans-serif",
-          position: "relative",
-          overflow: "hidden"
+          display: "flex",
+          overflow: "hidden",
         }}>
           <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -918,11 +918,120 @@ export default function AISolutionsArchitect() {
             .cat-card:hover .cat-arrow { transform: translateX(4px); opacity: 1; }
           `}</style>
 
-          {/* Ambient background */}
-          <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+          {/* Left Panel - Saved Solutions */}
+          <aside style={{
+            width: `${leftWidth}px`,
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            background: "#0a0d14",
+            height: "100%",
+            overflow: "hidden",
+          }}>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>💾</span>
+                Saved Solutions
+              </h3>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px", minHeight: 0 }}>
+              {savedSolutions.length === 0 ? (
+                <div style={{ padding: "24px 12px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+                  No saved solutions yet.<br/>Complete a wizard to save a solution.
+                </div>
+              ) : (
+                savedSolutions.map(solution => (
+                  <div
+                    key={solution.id}
+                    style={{
+                      padding: "12px",
+                      marginBottom: "8px",
+                      borderRadius: "8px",
+                      border: `1px solid ${solution.categoryColor}30`,
+                      background: `${solution.categoryColor}08`,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${solution.categoryColor}15`;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `${solution.categoryColor}08`;
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "16px" }}>{solution.categoryIcon}</span>
+                      <span style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", flex: 1 }}>{solution.category}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSolution(solution.id);
+                        }}
+                        style={{
+                          padding: "4px 6px",
+                          borderRadius: "4px",
+                          border: "none",
+                          background: "rgba(239,68,68,0.1)",
+                          color: "#f87171",
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px" }}>
+                      {new Date(solution.timestamp).toLocaleDateString()} {new Date(solution.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <button
+                      onClick={() => handleLoadSolution(solution)}
+                      style={{
+                        width: "100%",
+                        padding: "6px 10px",
+                        borderRadius: "6px",
+                        border: `1px solid ${solution.categoryColor}40`,
+                        background: `${solution.categoryColor}10`,
+                        color: solution.categoryColor,
+                        fontSize: "12px",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Load Solution
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </aside>
 
-          <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "60px 40px" }}>
+          {/* Resize Handle - Left */}
+          <div
+            onMouseDown={handleResizeLeft}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          />
+
+          {/* Main Content */}
+          <main style={{ flex: 1, overflowY: "auto", padding: "60px 40px", position: "relative" }}>
+            {/* Ambient background */}
+            <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+            <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
             {/* Hero */}
             <div style={{ textAlign: "center", marginBottom: "64px", animation: "slideUp 0.8s ease" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 14px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "20px", fontSize: "13px", color: "#38bdf8" }}>
@@ -982,6 +1091,7 @@ export default function AISolutionsArchitect() {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           </main>
         </div>
