@@ -682,6 +682,9 @@ export default function AISolutionsArchitect() {
   const [selectedTier, setSelectedTier] = useState<number>(1); // default to "Better"
   const [modificationRequest, setModificationRequest] = useState<string>('');
   const [isModifying, setIsModifying] = useState<boolean>(false);
+  const [savedSolutions, setSavedSolutions] = useState<any[]>([]);
+  const [leftWidth, setLeftWidth] = useState(280); // Saved solutions panel width
+  const [rightWidth, setRightWidth] = useState(380); // Chat panel width
   const contentRef = useRef<HTMLDivElement>(null);
 
   const category = CATEGORIES.find(c => c.id === selectedCategory);
@@ -819,6 +822,72 @@ export default function AISolutionsArchitect() {
     } finally {
       setIsModifying(false);
     }
+  };
+
+  const handleSaveSolution = () => {
+    if (!apiResult || !category) return;
+    const newSolution = {
+      id: Date.now(),
+      category: category.title,
+      categoryId: category.id,
+      categoryIcon: category.icon,
+      categoryColor: category.color,
+      result: apiResult,
+      formData,
+      timestamp: new Date().toISOString(),
+    };
+    setSavedSolutions(prev => [newSolution, ...prev]);
+  };
+
+  const handleLoadSolution = (solution: any) => {
+    setSelectedCategory(solution.categoryId);
+    setFormData(solution.formData);
+    setApiResult(solution.result);
+    setShowResult(true);
+  };
+
+  const handleDeleteSolution = (id: number) => {
+    setSavedSolutions(prev => prev.filter(s => s.id !== id));
+  };
+
+  const handleResizeLeft = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX;
+      const newWidth = Math.max(200, Math.min(500, startWidth + delta));
+      setLeftWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleResizeRight = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = rightWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = startX - e.clientX;
+      const newWidth = Math.max(300, Math.min(600, startWidth + delta));
+      setRightWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const currentField = activeFields[currentStep];
@@ -1135,9 +1204,114 @@ export default function AISolutionsArchitect() {
             </div>
           </header>
 
-          <div style={{ display: "flex", gap: "24px", maxWidth: "1400px", margin: "0 auto", padding: "48px 40px" }}>
+          <div style={{ display: "flex", height: "calc(100vh - 80px)", overflow: "hidden" }}>
+            {/* Left Panel - Saved Solutions */}
+            <aside style={{
+              width: `${leftWidth}px`,
+              borderRight: "1px solid rgba(255,255,255,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              background: "#0a0d14",
+            }}>
+              <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>💾</span>
+                  Saved Solutions
+                </h3>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+                {savedSolutions.length === 0 ? (
+                  <div style={{ padding: "24px 12px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+                    No saved solutions yet.<br/>Click Save to store a solution.
+                  </div>
+                ) : (
+                  savedSolutions.map(solution => (
+                    <div
+                      key={solution.id}
+                      style={{
+                        padding: "12px",
+                        marginBottom: "8px",
+                        borderRadius: "8px",
+                        border: `1px solid ${solution.categoryColor}30`,
+                        background: `${solution.categoryColor}08`,
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `${solution.categoryColor}15`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = `${solution.categoryColor}08`;
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "16px" }}>{solution.categoryIcon}</span>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", flex: 1 }}>{solution.category}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSolution(solution.id);
+                          }}
+                          style={{
+                            padding: "4px 6px",
+                            borderRadius: "4px",
+                            border: "none",
+                            background: "rgba(239,68,68,0.1)",
+                            color: "#f87171",
+                            fontSize: "11px",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px" }}>
+                        {new Date(solution.timestamp).toLocaleDateString()} {new Date(solution.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <button
+                        onClick={() => handleLoadSolution(solution)}
+                        style={{
+                          width: "100%",
+                          padding: "6px 10px",
+                          borderRadius: "6px",
+                          border: `1px solid ${solution.categoryColor}40`,
+                          background: `${solution.categoryColor}10`,
+                          color: solution.categoryColor,
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Load Solution
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </aside>
+
+            {/* Resize Handle - Left */}
+            <div
+              onMouseDown={handleResizeLeft}
+              style={{
+                width: "4px",
+                cursor: "col-resize",
+                background: "transparent",
+                position: "relative",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            />
+
             {/* Main Content */}
-            <main style={{ flex: "1", minWidth: 0 }}>
+            <main style={{ flex: "1", minWidth: 0, overflowY: "auto", padding: "48px 40px" }}>
 
             {/* Error state */}
             {apiError && (
@@ -1365,6 +1539,7 @@ export default function AISolutionsArchitect() {
                 <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.1)" }} />
 
                 <button
+                  onClick={handleSaveSolution}
                   className="fab-btn fab-btn-save"
                   style={{ padding: "10px 18px", borderRadius: "10px", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.15)", color: "#34d399", fontSize: "13px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}
                 >
@@ -1390,29 +1565,39 @@ export default function AISolutionsArchitect() {
             </div>
           </main>
 
-          {/* Chat Sidebar */}
+          {/* Resize Handle - Right */}
+          <div
+            onMouseDown={handleResizeRight}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          />
+
+          {/* Right Panel - Chat Sidebar */}
           <aside style={{
-            width: "380px",
-            position: "sticky",
-            top: "80px",
-            alignSelf: "flex-start",
-            height: "calc(100vh - 140px)",
+            width: `${rightWidth}px`,
+            borderLeft: "1px solid rgba(255,255,255,0.06)",
             display: "flex",
             flexDirection: "column",
+            background: "#0a0d14",
           }}>
-            <div style={{
-              padding: "20px",
-              borderRadius: "12px",
-              border: `2px solid ${category?.color}40`,
-              background: `${category?.color}08`,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                <span style={{ fontSize: "20px" }}>💬</span>
-                <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#e2e8f0", margin: 0 }}>Modify Recommendations</h4>
-              </div>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>💬</span>
+                Modify Recommendations
+              </h3>
+            </div>
+            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column" }}>
               <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
                 Ask for changes like "use HP servers instead of Dell", "add more storage", or "show me a lower-cost option"
               </p>
