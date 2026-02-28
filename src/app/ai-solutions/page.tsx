@@ -1212,14 +1212,16 @@ export default function AISolutionsArchitect() {
               display: "flex",
               flexDirection: "column",
               background: "#0a0d14",
+              height: "100%",
+              overflow: "hidden",
             }}>
-              <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
                 <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                   <span>💾</span>
                   Saved Solutions
                 </h3>
               </div>
-              <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px", minHeight: 0 }}>
                 {savedSolutions.length === 0 ? (
                   <div style={{ padding: "24px 12px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
                     No saved solutions yet.<br/>Click Save to store a solution.
@@ -1590,15 +1592,17 @@ export default function AISolutionsArchitect() {
             display: "flex",
             flexDirection: "column",
             background: "#0a0d14",
+            height: "100%",
+            overflow: "hidden",
           }}>
-            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
               <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                 <span>💬</span>
                 Modify Recommendations
               </h3>
             </div>
-            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column" }}>
-              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
+            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5, flexShrink: 0 }}>
                 Ask for changes like "use HP servers instead of Dell", "add more storage", or "show me a lower-cost option"
               </p>
               <textarea
@@ -1608,6 +1612,8 @@ export default function AISolutionsArchitect() {
                 style={{
                   width: "100%",
                   flex: "1",
+                  minHeight: "200px",
+                  maxHeight: "calc(100vh - 350px)",
                   padding: "12px",
                   borderRadius: "8px",
                   border: "1px solid rgba(255,255,255,0.1)",
@@ -1617,6 +1623,7 @@ export default function AISolutionsArchitect() {
                   fontFamily: "inherit",
                   resize: "none",
                   marginBottom: "16px",
+                  overflowY: "auto",
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && e.ctrlKey) {
@@ -1638,6 +1645,7 @@ export default function AISolutionsArchitect() {
                   fontWeight: 600,
                   cursor: modificationRequest.trim() && !isModifying ? "pointer" : "not-allowed",
                   fontFamily: "inherit",
+                  flexShrink: 0,
                 }}
               >
                 {isModifying ? "Updating..." : "Update Recommendations"}
