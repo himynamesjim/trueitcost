@@ -1026,12 +1026,12 @@ export default function AISolutionsArchitect() {
           />
 
           {/* Main Content */}
-          <main style={{ flex: 1, overflow: "hidden", padding: "20px 30px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <main style={{ flex: 1, overflow: "hidden", padding: "20px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {/* Ambient background */}
             <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-            <div style={{ maxWidth: "900px", width: "100%", position: "relative", zIndex: 1 }}>
+            <div style={{ width: "100%", maxWidth: "800px", position: "relative", zIndex: 1, margin: "0 auto" }}>
             {/* Hero */}
             <div style={{ textAlign: "center", marginBottom: "32px", animation: "slideUp 0.8s ease" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 12px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "16px", fontSize: "12px", color: "#38bdf8" }}>
@@ -1049,7 +1049,7 @@ export default function AISolutionsArchitect() {
             {/* Category Grid */}
             <div>
               <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both", textAlign: "center" }}>Choose your project type</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", maxWidth: "800px", margin: "0 auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
                 {CATEGORIES.map((cat, i) => (
                   <div
                     key={cat.id}
