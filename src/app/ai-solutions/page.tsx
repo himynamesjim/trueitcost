@@ -1588,7 +1588,7 @@ export default function AISolutionsArchitect() {
                             <div key={ii} style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", marginBottom: "8px" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
                                 <div>
-                                  <div style={{ fontSize: "15px", fontWeight: 600 }}>{item.name}</div>
+                                  <div style={{ fontSize: "17px", fontWeight: 700, color: "#e2e8f0" }}>{item.name}</div>
                                   <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{item.spec}</div>
                                 </div>
                                 <span style={{ fontSize: "15px", fontWeight: 600, color: category?.color, fontFamily: "'DM Mono', monospace", whiteSpace: "nowrap", marginLeft: "16px" }}>{item.price}</span>
@@ -1649,7 +1649,7 @@ export default function AISolutionsArchitect() {
                           <div key={ii} style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", marginBottom: "8px" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
                               <div>
-                                <div style={{ fontSize: "15px", fontWeight: 600 }}>{item.name}</div>
+                                <div style={{ fontSize: "17px", fontWeight: 700, color: "#e2e8f0" }}>{item.name}</div>
                                 <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{item.spec}</div>
                               </div>
                               <span style={{ fontSize: "15px", fontWeight: 600, color: category?.color, fontFamily: "'DM Mono', monospace", whiteSpace: "nowrap", marginLeft: "16px" }}>{item.price}</span>
