@@ -7,28 +7,28 @@ import { Database, Clock, RefreshCw, FileText } from 'lucide-react';
 export function BackupRecoveryStep() {
   const { wizardAnswers, updateWizardAnswers, nextStep, prevStep } = useAssessmentStore();
 
-  const [backupSolution, setBackupSolution] = useState(
-    wizardAnswers.backupSolution || ''
+  const [backupSolution, setBackupSolution] = useState<import('@/types').BackupSolution | null>(
+    wizardAnswers.backupSolution || null
   );
-  const [backupRetention, setBackupRetention] = useState(
-    wizardAnswers.backupRetention || ''
+  const [backupRetention, setBackupRetention] = useState<import('@/types').RetentionPeriod | null>(
+    wizardAnswers.backupRetention || null
   );
-  const [testedRestore, setTestedRestore] = useState(
-    wizardAnswers.testedRestoreRecently || ''
+  const [testedRestore, setTestedRestore] = useState<import('@/types').YesNoNotSure | null>(
+    wizardAnswers.testedRestoreRecently || null
   );
-  const [hasDisasterRecoveryPlan, setHasDisasterRecoveryPlan] = useState(
-    wizardAnswers.hasDisasterRecoveryPlan || ''
+  const [hasDisasterRecoveryPlan, setHasDisasterRecoveryPlan] = useState<import('@/types').YesNoNotSure | null>(
+    wizardAnswers.hasDisasterRecoveryPlan || null
   );
 
-  const hasBackups = backupSolution === 'Yes-managed' || backupSolution === 'Yes-self';
+  const hasBackups = backupSolution === 'yes-managed' || backupSolution === 'yes-self';
 
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      backupSolution: (backupSolution as any) || null,
-      backupRetention: hasBackups ? ((backupRetention as any) || null) : null,
-      testedRestoreRecently: hasBackups ? (testedRestore as 'yes' | 'no' | 'not-sure' || null) : null,
-      hasDisasterRecoveryPlan: hasBackups ? (hasDisasterRecoveryPlan as 'yes' | 'no' | 'not-sure' || null) : null,
+      backupSolution: backupSolution,
+      backupRetention: hasBackups ? backupRetention : null,
+      testedRestoreRecently: hasBackups ? testedRestore : null,
+      hasDisasterRecoveryPlan: hasBackups ? hasDisasterRecoveryPlan : null,
     });
     nextStep();
   };
@@ -46,10 +46,27 @@ export function BackupRecoveryStep() {
     return true;
   };
 
-  const backupSolutionOptions = ['Yes-managed', 'Yes-self', 'Not sure', 'No'];
-  const retentionOptions = ['Under 30 days', '30-90', '90+', 'Not sure'];
-  const yesNoOptions = ['Yes', 'No', 'Not sure'];
-  const yesNoOnlyOptions = ['Yes', 'No'];
+  const backupSolutionOptions: Array<{ label: string; value: import('@/types').BackupSolution }> = [
+    { label: 'Yes-managed', value: 'yes-managed' },
+    { label: 'Yes-self', value: 'yes-self' },
+    { label: 'Not sure', value: 'not-sure' },
+    { label: 'No', value: 'no' },
+  ];
+  const retentionOptions: Array<{ label: string; value: import('@/types').RetentionPeriod }> = [
+    { label: 'Under 30 days', value: 'under-30' },
+    { label: '30-90', value: '30-90' },
+    { label: '90+', value: '90-plus' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const yesNoOptions: Array<{ label: string; value: import('@/types').YesNoNotSure }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const yesNoOnlyOptions: Array<{ label: string; value: import('@/types').YesNoNotSure }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -65,23 +82,23 @@ export function BackupRecoveryStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {backupSolutionOptions.map((option) => (
             <button
-              key={option}
+              key={option.value}
               onClick={() => {
-                setBackupSolution(option);
+                setBackupSolution(option.value);
                 // Clear follow-up answers if they switch to No or Not sure
-                if (option === 'No' || option === 'Not sure') {
-                  setBackupRetention('');
-                  setTestedRestore('');
-                  setHasDisasterRecoveryPlan('');
+                if (option.value === 'no' || option.value === 'not-sure') {
+                  setBackupRetention(null);
+                  setTestedRestore(null);
+                  setHasDisasterRecoveryPlan(null);
                 }
               }}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                backupSolution === option
+                backupSolution === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -102,15 +119,15 @@ export function BackupRecoveryStep() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {retentionOptions.map((option) => (
                 <button
-                  key={option}
-                  onClick={() => setBackupRetention(option)}
+                  key={option.value}
+                  onClick={() => setBackupRetention(option.value)}
                   className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                    backupRetention === option
+                    backupRetention === option.value
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -128,21 +145,15 @@ export function BackupRecoveryStep() {
             <div className="grid grid-cols-3 gap-3">
               {yesNoOptions.map((option) => (
                 <button
-                  key={option}
-                  onClick={() => {
-                    if (option === 'Yes') setTestedRestore('true');
-                    else if (option === 'No') setTestedRestore('false');
-                    else setTestedRestore('not-sure');
-                  }}
+                  key={option.value}
+                  onClick={() => setTestedRestore(option.value)}
                   className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                    (option === 'Yes' && testedRestore === 'true') ||
-                    (option === 'No' && testedRestore === 'false') ||
-                    (option === 'Not sure' && testedRestore === 'not-sure')
+                    testedRestore === option.value
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -160,15 +171,15 @@ export function BackupRecoveryStep() {
             <div className="grid grid-cols-2 gap-3">
               {yesNoOnlyOptions.map((option) => (
                 <button
-                  key={option}
-                  onClick={() => setHasDisasterRecoveryPlan(option === 'Yes' ? 'true' : 'false')}
+                  key={option.value}
+                  onClick={() => setHasDisasterRecoveryPlan(option.value)}
                   className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                    hasDisasterRecoveryPlan === (option === 'Yes' ? 'true' : 'false')
+                    hasDisasterRecoveryPlan === option.value
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                       : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>

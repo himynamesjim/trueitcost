@@ -7,26 +7,26 @@ import { Shield, Mail, Lock, Search } from 'lucide-react';
 export function SecurityPostureStep() {
   const { wizardAnswers, updateWizardAnswers, nextStep, prevStep } = useAssessmentStore();
 
-  const [endpointProtection, setEndpointProtection] = useState(
-    wizardAnswers.hasEndpointProtection || ''
+  const [endpointProtection, setEndpointProtection] = useState<import('@/types').YesPartialNoNotSure | null>(
+    wizardAnswers.hasEndpointProtection || null
   );
-  const [emailSecurity, setEmailSecurity] = useState(
-    wizardAnswers.hasEmailSecurity?.toString() || ''
+  const [emailSecurity, setEmailSecurity] = useState<import('@/types').YesNoNotSure | null>(
+    wizardAnswers.hasEmailSecurity || null
   );
-  const [requiresMFA, setRequiresMFA] = useState(
-    wizardAnswers.requiresMFA?.toString() || ''
+  const [requiresMFA, setRequiresMFA] = useState<import('@/types').YesNoNotSure | null>(
+    wizardAnswers.requiresMFA || null
   );
-  const [lastSecurityAssessment, setLastSecurityAssessment] = useState(
-    wizardAnswers.lastSecurityAssessment || ''
+  const [lastSecurityAssessment, setLastSecurityAssessment] = useState<import('@/types').SecurityAssessmentTiming | null>(
+    wizardAnswers.lastSecurityAssessment || null
   );
 
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      hasEndpointProtection: endpointProtection || null,
-      hasEmailSecurity: emailSecurity === 'true' || emailSecurity === 'not-sure' ? emailSecurity : emailSecurity === 'false' ? 'no' : null,
-      requiresMFA: requiresMFA === 'true' || requiresMFA === 'not-sure' ? requiresMFA : requiresMFA === 'false' ? 'no' : null,
-      lastSecurityAssessment: lastSecurityAssessment || null,
+      hasEndpointProtection: endpointProtection,
+      hasEmailSecurity: emailSecurity,
+      requiresMFA: requiresMFA,
+      lastSecurityAssessment: lastSecurityAssessment,
     });
     nextStep();
   };
@@ -40,9 +40,23 @@ export function SecurityPostureStep() {
     );
   };
 
-  const endpointOptions = ['Yes', 'Partial', 'No', 'Not sure'];
-  const yesNoOptions = ['Yes', 'No', 'Not sure'];
-  const assessmentOptions = ['Within 1 yr', '1-2 yrs', 'Never', 'Not sure'];
+  const endpointOptions: Array<{ label: string; value: import('@/types').YesPartialNoNotSure }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'Partial', value: 'partial' },
+    { label: 'No', value: 'no' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const yesNoOptions: Array<{ label: string; value: import('@/types').YesNoNotSure }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const assessmentOptions: Array<{ label: string; value: import('@/types').SecurityAssessmentTiming }> = [
+    { label: 'Within 1 yr', value: 'within-1-year' },
+    { label: '1-2 yrs', value: '1-2-years' },
+    { label: 'Never', value: 'never' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -58,15 +72,15 @@ export function SecurityPostureStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {endpointOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setEndpointProtection(option)}
+              key={option.value}
+              onClick={() => setEndpointProtection(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                endpointProtection === option
+                endpointProtection === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -84,21 +98,15 @@ export function SecurityPostureStep() {
         <div className="grid grid-cols-3 gap-3">
           {yesNoOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => {
-                if (option === 'Yes') setEmailSecurity('true');
-                else if (option === 'No') setEmailSecurity('false');
-                else setEmailSecurity('not-sure');
-              }}
+              key={option.value}
+              onClick={() => setEmailSecurity(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                (option === 'Yes' && emailSecurity === 'true') ||
-                (option === 'No' && emailSecurity === 'false') ||
-                (option === 'Not sure' && emailSecurity === 'not-sure')
+                emailSecurity === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -116,21 +124,15 @@ export function SecurityPostureStep() {
         <div className="grid grid-cols-3 gap-3">
           {yesNoOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => {
-                if (option === 'Yes') setRequiresMFA('true');
-                else if (option === 'No') setRequiresMFA('false');
-                else setRequiresMFA('not-sure');
-              }}
+              key={option.value}
+              onClick={() => setRequiresMFA(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                (option === 'Yes' && requiresMFA === 'true') ||
-                (option === 'No' && requiresMFA === 'false') ||
-                (option === 'Not sure' && requiresMFA === 'not-sure')
+                requiresMFA === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -148,15 +150,15 @@ export function SecurityPostureStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {assessmentOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setLastSecurityAssessment(option)}
+              key={option.value}
+              onClick={() => setLastSecurityAssessment(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                lastSecurityAssessment === option
+                lastSecurityAssessment === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
