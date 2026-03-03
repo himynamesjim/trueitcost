@@ -1,7 +1,7 @@
-import type { 
-  Industry, 
-  ITManagement, 
-  InfrastructureLocation, 
+import type {
+  Industry,
+  ITManagement,
+  InfrastructureLocation,
   HardwareAge,
   BackupSolution,
   RetentionPeriod,
@@ -13,6 +13,7 @@ import type {
   YesPartialNoNotSure,
   Satisfaction,
   SecurityAssessmentTiming,
+  AssessmentType,
   WizardStep
 } from '@/types';
 
@@ -28,6 +29,12 @@ export interface StepInfo {
 }
 
 export const STEP_INFO: StepInfo[] = [
+  {
+    id: 'assessment-type',
+    title: 'Assessment Type',
+    description: 'What brings you here today?',
+    icon: 'HelpCircle',
+  },
   {
     id: 'business-basics',
     title: 'Business Basics',
@@ -81,6 +88,19 @@ export interface Option<T> {
   label: string;
   description?: string;
 }
+
+export const ASSESSMENT_TYPE_OPTIONS: Option<AssessmentType>[] = [
+  {
+    value: 'evaluate-current',
+    label: 'Evaluate My Current MSP',
+    description: 'I currently have an MSP and want to assess their performance and value'
+  },
+  {
+    value: 'explore-msp',
+    label: 'Explore if an MSP is Right for Me',
+    description: 'I\'m considering whether partnering with an MSP would benefit my business'
+  },
+];
 
 export const INDUSTRY_OPTIONS: Option<Industry>[] = [
   { value: 'healthcare', label: 'Healthcare', description: 'Medical, dental, clinics' },

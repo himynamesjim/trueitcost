@@ -168,39 +168,39 @@ export default function ResultsPage() {
 
   function calculateSecurityScore() {
     let score = 100;
-    if (wizardAnswers.hasEndpointProtection === 'No') score -= 30;
-    else if (wizardAnswers.hasEndpointProtection === 'Partial') score -= 15;
-    if (wizardAnswers.hasEmailSecurity === 'false') score -= 20;
-    if (wizardAnswers.requiresMFA === 'false') score -= 25;
-    if (wizardAnswers.lastSecurityAssessment === 'Never') score -= 25;
-    else if (wizardAnswers.lastSecurityAssessment === '1-2 yrs') score -= 10;
+    if (wizardAnswers.hasEndpointProtection === 'no') score -= 30;
+    else if (wizardAnswers.hasEndpointProtection === 'partial') score -= 15;
+    if (wizardAnswers.hasEmailSecurity === 'no') score -= 20;
+    if (wizardAnswers.requiresMFA === 'no') score -= 25;
+    if (wizardAnswers.lastSecurityAssessment === 'never') score -= 25;
+    else if (wizardAnswers.lastSecurityAssessment === '1-2-years') score -= 10;
     return Math.max(0, score);
   }
 
   function calculateBackupScore() {
     let score = 100;
-    if (wizardAnswers.backupSolution === 'No') score -= 50;
-    else if (wizardAnswers.backupSolution === 'Not sure') score -= 30;
-    if (wizardAnswers.testedRestore === 'false') score -= 30;
-    if (wizardAnswers.hasDisasterRecoveryPlan === false) score -= 20;
+    if (wizardAnswers.backupSolution === 'no') score -= 50;
+    else if (wizardAnswers.backupSolution === 'not-sure') score -= 30;
+    if (wizardAnswers.testedRestoreRecently === 'no') score -= 30;
+    if (wizardAnswers.hasDisasterRecoveryPlan === 'no') score -= 20;
     return Math.max(0, score);
   }
 
   function calculateInfrastructureScore() {
     let score = 100;
-    if (wizardAnswers.oldestHardwareAge === '7+ yrs') score -= 40;
-    else if (wizardAnswers.oldestHardwareAge === '5-7 yrs') score -= 25;
+    if (wizardAnswers.oldestHardwareAge === '7-plus') score -= 40;
+    else if (wizardAnswers.oldestHardwareAge === '5-7') score -= 25;
     if (wizardAnswers.hardwareConcerns === true) score -= 20;
-    if (wizardAnswers.infrastructureLocation === 'Not sure') score -= 15;
+    if (wizardAnswers.infrastructureLocation === 'not-sure') score -= 15;
     return Math.max(0, score);
   }
 
   function calculateManagementScore() {
     let score = 100;
-    if (wizardAnswers.itManagement === 'None') score -= 50;
-    else if (wizardAnswers.itManagement === 'Break-fix') score -= 30;
-    if (wizardAnswers.itSatisfaction === 'No') score -= 30;
-    else if (wizardAnswers.itSatisfaction === 'Somewhat') score -= 15;
+    if (wizardAnswers.itManagement === 'none') score -= 50;
+    else if (wizardAnswers.itManagement === 'break-fix') score -= 30;
+    if (wizardAnswers.itSatisfaction === 'no') score -= 30;
+    else if (wizardAnswers.itSatisfaction === 'somewhat') score -= 15;
     return Math.max(0, score);
   }
 
@@ -280,23 +280,23 @@ export default function ResultsPage() {
     else if (riskScore >= 3) estimatedDowntimeHours = 8;  // 1 business day
 
     // Additional downtime from specific risks
-    if (wizardAnswers.backupSolution === 'No' || wizardAnswers.backupSolution === 'Not sure') {
+    if (wizardAnswers.backupSolution === 'no' || wizardAnswers.backupSolution === 'not-sure') {
       estimatedDowntimeHours += 16; // +2 days for no backup
     }
-    if (wizardAnswers.testedRestore === 'false') {
+    if (wizardAnswers.testedRestoreRecently === 'no') {
       estimatedDowntimeHours += 8; // +1 day for untested backups
     }
-    if (wizardAnswers.oldestHardwareAge === '7+ yrs') {
+    if (wizardAnswers.oldestHardwareAge === '7-plus') {
       estimatedDowntimeHours += 12; // +1.5 days for critical hardware age
-    } else if (wizardAnswers.oldestHardwareAge === '5-7 yrs') {
+    } else if (wizardAnswers.oldestHardwareAge === '5-7') {
       estimatedDowntimeHours += 6; // +0.75 days for aging hardware
     }
-    if (wizardAnswers.itManagement === 'None') {
+    if (wizardAnswers.itManagement === 'none') {
       estimatedDowntimeHours += 10; // +1.25 days for no IT management
-    } else if (wizardAnswers.itManagement === 'Break-fix') {
+    } else if (wizardAnswers.itManagement === 'break-fix') {
       estimatedDowntimeHours += 6; // +0.75 days for reactive-only support
     }
-    if (wizardAnswers.hasEndpointProtection === 'No') {
+    if (wizardAnswers.hasEndpointProtection === 'no') {
       estimatedDowntimeHours += 16; // +2 days for no EDR (ransomware risk)
     }
 
@@ -305,9 +305,9 @@ export default function ResultsPage() {
     const estimatedDays = estimatedDowntimeHours / hoursPerBusinessDay;
 
     // Calculate worst-case scenario (single major incident)
-    const worstCaseDays = wizardAnswers.downtimeImpact === 'Business stops' ? 5 :
-                          wizardAnswers.downtimeImpact === 'Major disruption' ? 3 :
-                          wizardAnswers.downtimeImpact === 'Moderate' ? 2 : 1;
+    const worstCaseDays = wizardAnswers.downtimeImpact === 'business-stops' ? 5 :
+                          wizardAnswers.downtimeImpact === 'major-disruption' ? 3 :
+                          wizardAnswers.downtimeImpact === 'moderate' ? 2 : 1;
     const worstCaseHours = worstCaseDays * hoursPerBusinessDay;
     const worstCaseCost = Math.round(totalCostPerHour * worstCaseHours * toleranceMultiplier);
 
@@ -375,7 +375,7 @@ export default function ResultsPage() {
 
     // Additional costs avoided with MSP
     const avoidedCosts = {
-      hardwareRefresh: wizardAnswers.oldestHardwareAge === '7+ yrs' || wizardAnswers.oldestHardwareAge === '5-7 yrs' ? employeeCount * 1200 : 0,
+      hardwareRefresh: wizardAnswers.oldestHardwareAge === '7-plus' || wizardAnswers.oldestHardwareAge === '5-7' ? employeeCount * 1200 : 0,
       securityIncident: riskScore >= 7 ? 50000 : riskScore >= 5 ? 25000 : 0,
       downtime: calculateDowntimeCost()?.annualDowntimeCost || 0,
       recruitment: engineerCount * 15000, // Cost to recruit/replace IT staff (avoided with MSP)
@@ -428,15 +428,15 @@ export default function ResultsPage() {
     if (employeeCount === 0) return null;
 
     // Hours spent on IT issues per employee per year
-    const itIssueHours = wizardAnswers.itManagement === 'None' ? 20 :
-                        wizardAnswers.itManagement === 'Break-fix' ? 15 :
-                        wizardAnswers.itSatisfaction === 'No' ? 12 : 8;
+    const itIssueHours = wizardAnswers.itManagement === 'none' ? 20 :
+                        wizardAnswers.itManagement === 'break-fix' ? 15 :
+                        wizardAnswers.itSatisfaction === 'no' ? 12 : 8;
 
     // Average employee hourly cost (conservative)
     const avgEmployeeHourlyCost = 50;
 
     // IT staff time spent on reactive tasks vs proactive
-    const itStaffReactiveHours = (wizardAnswers.itStaffCount || 0) * (wizardAnswers.itManagement === 'In-house' ? 800 : 0);
+    const itStaffReactiveHours = (wizardAnswers.itStaffCount || 0) * (wizardAnswers.itManagement === 'in-house' ? 800 : 0);
 
     const totalProductivityLoss = (employeeCount * itIssueHours * avgEmployeeHourlyCost) + (itStaffReactiveHours * 75);
 
@@ -545,7 +545,7 @@ export default function ResultsPage() {
               'bg-emerald-100 dark:bg-emerald-900/40'
             }`}>
               {mspRec.color === 'green' ? (
-                <CheckCircle className={`h-6 w-6 md:h-8 md:w-8 ${mspRec.color === 'red' ? 'text-red-600' : mspRec.color === 'orange' ? 'text-orange-600' : mspRec.color === 'yellow' ? 'text-yellow-600' : 'text-emerald-600'}`} />
+                <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-emerald-600" />
               ) : (
                 <AlertTriangle className={`h-6 w-6 md:h-8 md:w-8 ${mspRec.color === 'red' ? 'text-red-600' : mspRec.color === 'orange' ? 'text-orange-600' : 'text-yellow-600'}`} />
               )}

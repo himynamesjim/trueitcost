@@ -1,10 +1,57 @@
 'use client';
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/site-header';
 
-const CATEGORIES = [
+interface Field {
+  id: string;
+  label: string;
+  type: 'select' | 'multi' | 'text' | 'textarea';
+  options?: (string | { label: string; description?: string })[];
+  placeholder?: string;
+}
+
+interface Category {
+  id: string;
+  icon: string;
+  title: string;
+  subtitle: string;
+  color: string;
+  fields: Field[];
+  fieldsUCaaS?: Field[];
+  fieldsCCaaS?: Field[];
+  fieldsBoth?: Field[];
+  fieldsNewOffice?: Field[];
+  fieldsRefresh?: Field[];
+  fieldsWiFi?: Field[];
+  fieldsFirewall?: Field[];
+  fieldsSDWAN?: Field[];
+  fieldsTroubleshooting?: Field[];
+  fieldsGuestWiFi?: Field[];
+  fieldsCabling?: Field[];
+  fieldsISPFailover?: Field[];
+  fieldsRemoteSite?: Field[];
+  fieldsRemoteVPN?: Field[];
+  fieldsNewDataCenter?: Field[];
+  fieldsCloudMigration?: Field[];
+  fieldsHybridCloud?: Field[];
+  fieldsServerRefresh?: Field[];
+  fieldsDR?: Field[];
+  fieldsColo?: Field[];
+  // Security conditional fields
+  fieldsAssessment?: Field[];
+  fieldsEndpoint?: Field[];
+  fieldsCompliance?: Field[];
+  fieldsEmail?: Field[];
+  fieldsZeroTrust?: Field[];
+  // BCDR conditional fields
+  fieldsNewBackup?: Field[];
+  fieldsReplacement?: Field[];
+  fieldsSaaS?: Field[];
+}
+
+const CATEGORIES: Category[] = [
   {
     id: "collaboration",
     icon: "🎥",
@@ -13,7 +60,7 @@ const CATEGORIES = [
     color: "#0ea5e9",
     fields: [
       { id: "room_type", label: "What type of space?", type: "select", options: ["Large Conference Room (12+ people)", "Medium Conference Room (6-12)", "Huddle Room (2-5)", "Executive Office", "Training Room / All-Hands", "Open Collaboration Area"] },
-      { id: "dimensions", label: "Room dimensions (LxW in feet)", type: "text", placeholder: "e.g. 20x15" },
+      { id: "dimensions", label: "Room dimensions (LxW in feet)", type: "text" as const, placeholder: "e.g. 20x15" },
       { id: "platform", label: "Which platform do you use?", type: "select", options: ["Microsoft Teams", "Zoom", "Google Meet", "Cisco Webex", "Not sure / Open to recommendations", "Multiple platforms"] },
       { id: "display_pref", label: "Display preference", type: "select", options: ["Single large display", "Dual displays", "LED video wall", "No preference / Recommend for me"] },
       { id: "audio_needs", label: "Audio requirements", type: "multi", options: ["Ceiling microphones", "Table microphones", "Soundbar", "Separate speakers", "Wireless audio sharing", "Not sure"] },
@@ -152,7 +199,7 @@ const CATEGORIES = [
     // New office buildout - needs full assessment
     fieldsNewOffice: [
       { id: "existing_infrastructure", label: "Current network infrastructure at other sites", type: "textarea", placeholder: "Describe existing equipment at other locations: e.g., 'Ubiquiti UDM Pro at main office with 3x UniFi switches' or 'Cisco WLC at datacenter managing 15 APs across 3 sites via P2P VPN' or 'This is our first office'" },
-      { id: "office_size", label: "Office square footage", type: "text", placeholder: "e.g. 5000 sq ft" },
+      { id: "office_size", label: "Office square footage", type: "text" as const, placeholder: "e.g. 5000 sq ft" },
       { id: "device_count", label: "How many wired devices?", type: "select", options: ["Under 25", "25-50", "51-100", "101-250", "250+"] },
       { id: "wireless_users", label: "How many wireless users/devices?", type: "select", options: ["Under 25", "25-50", "51-100", "101-250", "250+"] },
       { id: "requirements", label: "Network requirements", type: "multi", options: ["Guest Wi-Fi (isolated)", "VoIP support / QoS", "VLAN segmentation", "PoE for cameras/phones", "Redundant internet", "VPN for remote workers", "IoT device support", "Outdoor Wi-Fi coverage"] },
@@ -200,7 +247,7 @@ const CATEGORIES = [
     // Adding Wi-Fi coverage - just Wi-Fi specific
     fieldsWiFi: [
       { id: "existing_infrastructure", label: "Current network infrastructure", type: "textarea", placeholder: "Describe existing equipment: e.g., 'Ubiquiti UDM Pro with 2 UniFi APs, need to expand coverage' or 'Cisco WLC at datacenter managing APs at other sites'" },
-      { id: "coverage_area", label: "Area needing Wi-Fi coverage", type: "text", placeholder: "e.g. 3000 sq ft warehouse, outdoor courtyard, etc." },
+      { id: "coverage_area", label: "Area needing Wi-Fi coverage", type: "text" as const, placeholder: "e.g. 3000 sq ft warehouse, outdoor courtyard, etc." },
       { id: "wireless_users", label: "How many wireless users/devices?", type: "select", options: ["Under 25", "25-50", "51-100", "101-250", "250+"] },
       { id: "wifi_requirements", label: "Wi-Fi requirements", type: "multi", options: ["High-density (many devices)", "Outdoor coverage", "Guest isolation", "Roaming between APs", "IoT/sensor devices", "Video streaming"] },
       { id: "vendor_preference", label: "Vendor preference (if any)", type: "multi" as const, options: [
@@ -263,7 +310,7 @@ const CATEGORIES = [
       { id: "venue_type", label: "Type of venue", type: "select", options: ["Retail store", "Hotel / Hospitality", "Restaurant / Cafe", "Healthcare waiting room", "Office building", "Event venue", "Other"] },
       { id: "guest_count", label: "Expected concurrent guest users", type: "select", options: ["Under 25", "25-50", "51-100", "101-250", "250-500", "500+"] },
       { id: "guest_wifi_features", label: "Guest Wi-Fi requirements", type: "multi", options: ["Captive portal (splash page)", "Social media login", "SMS verification", "Bandwidth limiting per user", "Time-based sessions", "Guest analytics/reporting", "Voucher/ticket system", "Terms & conditions acceptance"] },
-      { id: "coverage_area", label: "Coverage area size", type: "text", placeholder: "e.g. 5000 sq ft retail space, 50-room hotel, etc." },
+      { id: "coverage_area", label: "Coverage area size", type: "text" as const, placeholder: "e.g. 5000 sq ft retail space, 50-room hotel, etc." },
       { id: "vendor_preference", label: "Vendor preference (if any)", type: "multi" as const, options: [
         { label: "Cisco", description: "Cisco Meraki, Catalyst - enterprise-grade with robust ecosystem" },
         { label: "Aruba (HPE)", description: "Aruba Instant On/ClearPass - strong guest access features" },
@@ -280,7 +327,7 @@ const CATEGORIES = [
       { id: "project_scope", label: "Cabling project scope", type: "select", options: ["New installation (empty space)", "Cable upgrade/refresh", "Adding drops to existing system", "Cable repair/remediation", "Full audit & documentation"] },
       { id: "cable_type_needed", label: "Cable types needed", type: "multi", options: ["Cat6 horizontal runs", "Cat6a horizontal runs", "Fiber backbone (multi-mode)", "Fiber backbone (single-mode)", "Outdoor-rated cable", "Plenum-rated cable"] },
       { id: "drop_count", label: "Number of network drops needed", type: "select", options: ["Under 25 drops", "25-50 drops", "51-100 drops", "101-250 drops", "250+ drops", "Not sure"] },
-      { id: "office_size", label: "Office/facility size", type: "text", placeholder: "e.g. 10,000 sq ft across 2 floors" },
+      { id: "office_size", label: "Office/facility size", type: "text" as const, placeholder: "e.g. 10,000 sq ft across 2 floors" },
       { id: "special_requirements", label: "Special requirements", type: "multi", options: ["PoE support (cameras/phones/APs)", "Patch panel organization", "Cable labeling/documentation", "Cable testing & certification", "Conduit installation", "Cable trays/raceways", "MDF/IDF setup"] },
       { id: "budget_net", label: "Budget range", type: "select", options: ["Under $5,000", "$5,000 - $15,000", "$15,000 - $30,000", "$30,000 - $75,000", "$75,000+", "Need guidance"] },
       { id: "notes", label: "Anything else?", type: "textarea", placeholder: "Floor plan available? Building restrictions? Timeline?" }
@@ -428,16 +475,184 @@ const CATEGORIES = [
     title: "Cybersecurity",
     subtitle: "Endpoint protection, SIEM, compliance, zero trust",
     color: "#ef4444",
+    // Base field shown first before branching
     fields: [
-      { id: "security_goal", label: "Primary goal", type: "select", options: ["Comprehensive security assessment", "Endpoint protection deployment", "Compliance readiness (HIPAA, PCI, etc.)", "Incident response planning", "Security awareness training", "Zero trust implementation", "Email security hardening"] },
+      { id: "security_goal", label: "What's your primary security goal?", type: "multi", options: [
+        { label: "Comprehensive Security Assessment", description: "Full security audit and gap analysis to identify vulnerabilities and create a roadmap" },
+        { label: "Endpoint Protection", description: "Deploy or upgrade antivirus, EDR/XDR, and device protection across your organization" },
+        { label: "Compliance Readiness", description: "Prepare for HIPAA, PCI-DSS, SOC 2, CMMC, or other regulatory requirements" },
+        { label: "Email & Phishing Defense", description: "Advanced email filtering, anti-phishing training, and incident response for email threats" },
+        { label: "Zero Trust & Identity", description: "Implement zero trust architecture with MFA, conditional access, and identity governance" },
+      ] },
+    ],
+    // Security Assessment questions
+    fieldsAssessment: [
       { id: "employee_count", label: "Number of employees", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250+"] },
-      { id: "industry", label: "Your industry", type: "select", options: ["Healthcare", "Financial services", "Manufacturing", "Legal", "Government / public sector", "Retail / ecommerce", "Professional services", "Other"] },
-      { id: "current_tools", label: "Current security tools in place", type: "multi", options: ["Antivirus (traditional)", "EDR / XDR", "Firewall with UTM", "Email filtering", "MFA everywhere", "Security awareness training", "Backup solution", "SIEM / log management", "Dark web monitoring", "None / starting fresh"] },
-      { id: "pain_points", label: "Biggest concerns", type: "multi", options: ["Ransomware protection", "Phishing attacks", "Insider threats", "Compliance audit coming up", "No visibility into threats", "Shadow IT / unmanaged devices", "Remote worker security", "Third-party vendor risk"] },
-      { id: "compliance_req", label: "Compliance framework needed", type: "multi", options: ["HIPAA", "PCI-DSS", "SOC 2", "CMMC", "NIST CSF", "CIS Controls", "ISO 27001", "None / Not sure"] },
-      { id: "budget_sec", label: "Monthly security budget per user", type: "select", options: ["Under $5/user", "$5-15/user", "$15-30/user", "$30+/user", "Need guidance"] },
-      { id: "notes", label: "Tell us more about your situation", type: "textarea", placeholder: "Recent incidents, audit dates, specific concerns..." }
-    ]
+      { id: "industry", label: "Your industry", type: "select", options: ["Healthcare", "Financial services", "Manufacturing", "Legal", "Government / public sector", "Retail / ecommerce", "Professional services", "Education", "Other"] },
+      { id: "current_tools", label: "Current security tools in place", type: "multi", options: [
+        { label: "Antivirus (traditional)", description: "Basic signature-based antivirus on endpoints" },
+        { label: "EDR / XDR", description: "Advanced endpoint detection and response platform" },
+        { label: "Firewall with UTM", description: "Next-gen firewall with unified threat management" },
+        { label: "Email filtering", description: "Anti-spam and malware scanning for email" },
+        { label: "MFA", description: "Multi-factor authentication deployed" },
+        { label: "Security awareness training", description: "Regular phishing and security training for staff" },
+        { label: "Backup solution", description: "Automated backup with offsite/cloud copies" },
+        { label: "SIEM / log management", description: "Security information and event management platform" },
+        { label: "Dark web monitoring", description: "Monitoring for leaked credentials or data" },
+        { label: "None / starting fresh", description: "No formal security tools currently in place" },
+      ] },
+      { id: "assessment_drivers", label: "What's driving this assessment?", type: "multi", options: [
+        { label: "Recent security incident", description: "Experienced ransomware, breach, or phishing attack" },
+        { label: "Compliance requirement", description: "Need to meet regulatory or customer security standards" },
+        { label: "Cyber insurance application", description: "Insurer requires security documentation or improvements" },
+        { label: "M&A activity", description: "Merger, acquisition, or due diligence process" },
+        { label: "Leadership directive", description: "Board or executive mandate to improve security posture" },
+        { label: "Proactive planning", description: "Want to stay ahead of threats and build a roadmap" },
+      ] },
+      { id: "assessment_scope", label: "What should the assessment cover?", type: "multi", options: [
+        { label: "Network security", description: "Firewalls, segmentation, VPN, wireless security" },
+        { label: "Endpoint security", description: "Laptops, desktops, mobile devices, servers" },
+        { label: "Identity & access", description: "User accounts, privileges, MFA, password policies" },
+        { label: "Email & phishing", description: "Email security, spam filtering, user awareness" },
+        { label: "Data protection", description: "Encryption, DLP, backup, data classification" },
+        { label: "Cloud security", description: "AWS, Azure, Google Cloud, SaaS application security" },
+        { label: "Physical security", description: "Badge access, cameras, visitor management" },
+        { label: "Incident response", description: "IR plan, playbooks, forensics readiness" },
+        { label: "Vendor/third-party risk", description: "Supply chain and vendor security assessments" },
+      ] },
+      { id: "budget_assessment", label: "Budget for security assessment", type: "select", options: ["Under $5,000", "$5,000-10,000", "$10,000-25,000", "$25,000-50,000", "$50,000+", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Recent incidents, timeline, specific areas of concern..." },
+    ],
+    // Endpoint Protection questions
+    fieldsEndpoint: [
+      { id: "employee_count", label: "Number of employees/devices to protect", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250-500", "500+"] },
+      { id: "device_types", label: "What devices need protection?", type: "multi", options: [
+        { label: "Windows laptops/desktops", description: "Standard Windows endpoints" },
+        { label: "Mac computers", description: "macOS devices" },
+        { label: "Linux workstations/servers", description: "Linux-based systems" },
+        { label: "Mobile devices (BYOD)", description: "Personal iOS/Android phones and tablets" },
+        { label: "Company-owned mobile", description: "Corporate-managed iOS/Android devices" },
+        { label: "Servers (on-prem)", description: "Physical or virtual servers in your datacenter" },
+        { label: "Cloud servers", description: "AWS, Azure, or Google Cloud VMs" },
+      ] },
+      { id: "current_av", label: "Current antivirus/endpoint solution?", type: "select", options: ["Traditional antivirus (e.g. McAfee, Norton)", "EDR solution (e.g. CrowdStrike, SentinelOne)", "Built-in only (Windows Defender)", "Multiple tools (inconsistent)", "None / No protection", "Not sure what we have"] },
+      { id: "endpoint_features", label: "Required endpoint protection features", type: "multi", options: [
+        { label: "Next-gen antivirus (NGAV)", description: "AI/ML-based threat detection beyond signatures" },
+        { label: "Endpoint detection & response (EDR)", description: "Real-time monitoring, threat hunting, and forensics" },
+        { label: "Ransomware rollback", description: "Automatic restoration of encrypted files" },
+        { label: "Behavioral analysis", description: "Detect suspicious activity patterns and zero-days" },
+        { label: "24/7 SOC monitoring", description: "Managed detection and response (MDR) with human analysts" },
+        { label: "USB device control", description: "Block or monitor removable media" },
+        { label: "Application control", description: "Whitelist/blacklist applications by policy" },
+        { label: "Vulnerability management", description: "Scan and remediate OS and software vulnerabilities" },
+      ] },
+      { id: "management_preference", label: "How do you want to manage it?", type: "select", options: ["Fully managed (MDR with 24/7 SOC)", "Co-managed (vendor assists, we retain control)", "Self-managed (we handle alerts and response)", "Not sure / Need recommendation"] },
+      { id: "budget_endpoint", label: "Monthly budget per endpoint", type: "select", options: ["Under $5/device", "$5-10/device", "$10-20/device", "$20-40/device", "$40+/device", "Need guidance"] },
+      { id: "notes", label: "Special requirements or challenges?", type: "textarea", placeholder: "Industry-specific needs, air-gapped systems, deployment timeline..." },
+    ],
+    // Compliance questions
+    fieldsCompliance: [
+      { id: "employee_count", label: "Number of employees in scope", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250+"] },
+      { id: "industry", label: "Your industry", type: "select", options: ["Healthcare", "Financial services", "Manufacturing", "Legal", "Government / public sector", "Retail / ecommerce", "Professional services", "Education", "Other"] },
+      { id: "compliance_frameworks", label: "Which compliance frameworks do you need?", type: "multi", options: [
+        { label: "HIPAA", description: "Healthcare data protection (PHI)" },
+        { label: "PCI-DSS", description: "Payment card industry security standards" },
+        { label: "SOC 2 Type I or II", description: "Service organization controls audit" },
+        { label: "CMMC", description: "Cybersecurity Maturity Model Certification (DoD)" },
+        { label: "NIST CSF", description: "NIST Cybersecurity Framework" },
+        { label: "CIS Controls", description: "Center for Internet Security benchmarks" },
+        { label: "ISO 27001", description: "International information security standard" },
+        { label: "GDPR", description: "EU General Data Protection Regulation" },
+        { label: "StateRAMP / FedRAMP", description: "Government cloud authorization" },
+        { label: "Not sure / Need help identifying", description: "Need guidance on which frameworks apply" },
+      ] },
+      { id: "compliance_driver", label: "Why do you need compliance?", type: "select", options: ["Customer contract requirement", "Regulatory audit scheduled", "Cyber insurance requirement", "RFP / new sales opportunity", "Board or leadership mandate", "Proactive risk management"] },
+      { id: "audit_timeline", label: "When is your audit or deadline?", type: "select", options: ["Already overdue", "Within 30 days", "1-3 months", "3-6 months", "6-12 months", "12+ months / planning ahead"] },
+      { id: "current_state", label: "Current compliance readiness", type: "select", options: ["No preparation yet", "Some documentation started", "Partially compliant", "Compliant but need audit validation", "Not sure where we stand"] },
+      { id: "compliance_scope", label: "What needs to be addressed?", type: "multi", options: [
+        { label: "Policies & procedures", description: "Security policies, acceptable use, incident response" },
+        { label: "Risk assessment", description: "Identify and document security risks" },
+        { label: "Access controls", description: "User permissions, MFA, least privilege" },
+        { label: "Encryption", description: "Data at rest and in transit" },
+        { label: "Backup & recovery", description: "Business continuity and disaster recovery" },
+        { label: "Audit logging", description: "SIEM, log retention, monitoring" },
+        { label: "Security awareness training", description: "Staff training and phishing simulation" },
+        { label: "Vendor management", description: "Third-party risk assessments and BAAs" },
+        { label: "Penetration testing", description: "External pentest or vulnerability scan" },
+        { label: "Everything / full compliance program", description: "Need comprehensive compliance support" },
+      ] },
+      { id: "budget_compliance", label: "Budget for compliance project", type: "select", options: ["Under $10,000", "$10,000-25,000", "$25,000-50,000", "$50,000-100,000", "$100,000+", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Audit findings, specific gaps, customer requirements..." },
+    ],
+    // Email & Phishing Defense questions
+    fieldsEmail: [
+      { id: "employee_count", label: "Number of email users", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250-500", "500+"] },
+      { id: "email_platform", label: "What email platform do you use?", type: "select", options: ["Microsoft 365", "Google Workspace", "On-premise Exchange", "Other hosted email", "Mixed environment", "Not sure"] },
+      { id: "current_email_security", label: "Current email security tools", type: "multi", options: [
+        { label: "Built-in protection only", description: "Native Microsoft or Google filtering" },
+        { label: "Third-party email gateway", description: "Proofpoint, Mimecast, Barracuda, etc." },
+        { label: "Advanced threat protection", description: "Sandbox, URL rewriting, ATP features" },
+        { label: "DMARC / SPF / DKIM", description: "Email authentication protocols configured" },
+        { label: "Phishing simulation training", description: "Regular fake phishing tests for users" },
+        { label: "Email encryption", description: "Secure email for sensitive data" },
+        { label: "None / basic filtering only", description: "No advanced email security" },
+      ] },
+      { id: "email_threats", label: "What email threats concern you most?", type: "multi", options: [
+        { label: "Phishing / credential theft", description: "Fake login pages stealing passwords" },
+        { label: "Business email compromise (BEC)", description: "Impersonation and wire fraud attacks" },
+        { label: "Malware attachments", description: "Ransomware, trojans, or viruses in files" },
+        { label: "Malicious links/URLs", description: "Links to phishing or malware sites" },
+        { label: "Spoofing / impersonation", description: "Emails pretending to be from executives or vendors" },
+        { label: "Data exfiltration", description: "Sensitive data leaving via email" },
+        { label: "Spam overload", description: "Too much junk mail affecting productivity" },
+      ] },
+      { id: "email_features", label: "Email security features needed", type: "multi", options: [
+        { label: "Advanced threat detection", description: "Sandbox analysis and AI-based threat detection" },
+        { label: "URL rewriting & time-of-click protection", description: "Scan links when clicked, not just when received" },
+        { label: "Attachment sandboxing", description: "Detonate attachments in isolated environment" },
+        { label: "DMARC enforcement", description: "Block spoofed emails from your domain" },
+        { label: "Phishing simulation & training", description: "Automated phishing tests with training modules" },
+        { label: "Email encryption", description: "Encrypt sensitive emails automatically or on-demand" },
+        { label: "DLP for email", description: "Prevent accidental sharing of sensitive data" },
+        { label: "Incident response & remediation", description: "Quickly remove malicious emails from all inboxes" },
+      ] },
+      { id: "budget_email", label: "Monthly budget per user", type: "select", options: ["Under $3/user", "$3-6/user", "$6-12/user", "$12-20/user", "$20+/user", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Recent phishing incidents, compliance needs, specific concerns..." },
+    ],
+    // Zero Trust & Identity questions
+    fieldsZeroTrust: [
+      { id: "employee_count", label: "Number of users", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250-500", "500+"] },
+      { id: "identity_platform", label: "Current identity platform", type: "select", options: ["Azure Active Directory / Entra ID", "Google Workspace", "Okta", "On-premise Active Directory only", "JumpCloud", "Mixed / multiple directories", "None / local accounts only"] },
+      { id: "current_iam", label: "Current identity & access controls", type: "multi", options: [
+        { label: "MFA deployed for most users", description: "Multi-factor authentication is standard" },
+        { label: "MFA for admins/VPN only", description: "MFA only on privileged accounts or remote access" },
+        { label: "Single sign-on (SSO)", description: "Centralized login for SaaS apps" },
+        { label: "Conditional access policies", description: "Block access from risky locations or devices" },
+        { label: "Privileged access management (PAM)", description: "Vault and session recording for admin accounts" },
+        { label: "Password policies enforced", description: "Complexity, expiration, lockout rules" },
+        { label: "None / basic passwords only", description: "No MFA or advanced identity controls" },
+      ] },
+      { id: "zerotrust_drivers", label: "Why are you pursuing zero trust?", type: "multi", options: [
+        { label: "Remote workforce security", description: "Need to secure work-from-anywhere access" },
+        { label: "Cloud migration", description: "Moving apps to cloud, need new security model" },
+        { label: "Compliance requirement", description: "CMMC, FedRAMP, or other mandate" },
+        { label: "Recent breach or incident", description: "Need to prevent lateral movement and limit blast radius" },
+        { label: "Cyber insurance requirement", description: "Insurer requires MFA and access controls" },
+        { label: "Proactive security improvement", description: "Want to modernize security architecture" },
+      ] },
+      { id: "zerotrust_scope", label: "What does your zero trust initiative cover?", type: "multi", options: [
+        { label: "MFA everywhere", description: "Universal MFA for all users and applications" },
+        { label: "Conditional access", description: "Context-aware policies (location, device, risk)" },
+        { label: "Device trust / endpoint verification", description: "Only allow managed/compliant devices" },
+        { label: "Least privilege access", description: "Just-in-time access and privilege minimization" },
+        { label: "Network segmentation", description: "Micro-segmentation and software-defined perimeter" },
+        { label: "Continuous monitoring & analytics", description: "UEBA and behavior-based threat detection" },
+        { label: "Privileged access management", description: "Secure admin accounts and session monitoring" },
+        { label: "SaaS security (CASB)", description: "Cloud access security broker for shadow IT" },
+      ] },
+      { id: "budget_zerotrust", label: "Monthly budget per user", type: "select", options: ["Under $5/user", "$5-10/user", "$10-20/user", "$20-40/user", "$40+/user", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Current pain points, compliance deadlines, implementation timeline..." },
+    ],
   },
   {
     id: "bcdr",
@@ -445,16 +660,179 @@ const CATEGORIES = [
     title: "Backup & Disaster Recovery",
     subtitle: "Business continuity, backup, failover, RTO/RPO planning",
     color: "#6366f1",
+    // Base field shown first before branching
     fields: [
-      { id: "bcdr_goal", label: "What are you solving for?", type: "select", options: ["No backup solution currently", "Replacing current backup", "Adding disaster recovery", "Full BCP / DR planning", "Cloud-to-cloud backup (M365, Google)", "Compliance-driven backup requirements"] },
+      { id: "bcdr_goal", label: "What type of backup/DR solution do you need?", type: "multi", options: [
+        { label: "New Backup Solution", description: "No backup currently — need to implement data protection from scratch" },
+        { label: "Backup Replacement", description: "Replace unreliable, slow, or outdated backup system with modern solution" },
+        { label: "Disaster Recovery (DR)", description: "Add business continuity and failover capability beyond basic backups" },
+        { label: "SaaS Backup (M365/Google)", description: "Protect cloud email, OneDrive, SharePoint, or Google Workspace data" },
+        { label: "Compliance-Driven Backup", description: "Meet regulatory requirements for data retention and recovery (HIPAA, SOX, etc.)" },
+      ] },
+    ],
+    // New Backup Solution questions
+    fieldsNewBackup: [
       { id: "data_volume", label: "Total data to protect", type: "select", options: ["Under 500 GB", "500 GB - 2 TB", "2 TB - 10 TB", "10 TB - 50 TB", "50+ TB", "Not sure"] },
-      { id: "rto", label: "Recovery Time Objective (how fast do you need to be back up?)", type: "select", options: ["Minutes (near-zero downtime)", "1-4 hours", "4-8 hours", "Same day", "Next business day", "Not sure / Help me decide"] },
+      { id: "environment", label: "What needs protecting?", type: "multi", options: [
+        { label: "Physical servers", description: "On-premise physical servers or appliances" },
+        { label: "Virtual machines (VMware/Hyper-V)", description: "Virtualized server infrastructure" },
+        { label: "Microsoft 365", description: "Email, SharePoint, OneDrive, Teams data" },
+        { label: "Google Workspace", description: "Gmail, Drive, Docs, shared files" },
+        { label: "Cloud servers (AWS/Azure/GCP)", description: "Cloud-hosted VMs or instances" },
+        { label: "Workstations / laptops", description: "End-user device data" },
+        { label: "Databases (SQL, Oracle, etc.)", description: "Production databases requiring point-in-time recovery" },
+        { label: "SaaS applications", description: "Salesforce, other cloud apps" },
+        { label: "Network-attached storage (NAS)", description: "Shared file storage or NAS devices" },
+      ] },
+      { id: "recovery_goals", label: "Recovery requirements", type: "multi", options: [
+        { label: "Fast recovery (RTO < 4 hours)", description: "Need to be back up and running within a few hours" },
+        { label: "Minimal data loss (RPO < 1 hour)", description: "Can't afford to lose more than an hour of data" },
+        { label: "Offsite/cloud copies", description: "Need backups stored away from primary location" },
+        { label: "Ransomware protection", description: "Immutable backups that can't be encrypted by ransomware" },
+        { label: "Long-term retention", description: "Keep backups for years (compliance or legal hold)" },
+        { label: "Granular restore", description: "Recover individual files or emails without full restore" },
+      ] },
+      { id: "current_state", label: "Current backup situation", type: "select", options: ["No backup at all", "Manual backups (USB drives, etc.)", "Inconsistent backups", "Backups not tested", "Backups onsite only (no offsite)", "Not sure if backups work"] },
+      { id: "urgency", label: "Implementation urgency", type: "select", options: ["Immediate (recent data loss or scare)", "Within 30 days", "1-3 months", "3-6 months", "Planning ahead"] },
+      { id: "budget_backup", label: "Monthly budget", type: "select", options: ["Under $200/mo", "$200-500/mo", "$500-1,500/mo", "$1,500-3,000/mo", "$3,000-5,000/mo", "$5,000+/mo", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Specific systems to protect, growth plans, prior data loss..." },
+    ],
+    // Backup Replacement questions
+    fieldsReplacement: [
+      { id: "current_solution", label: "What's your current backup solution?", type: "text" as const, placeholder: "e.g. Veeam, Acronis, tape backup, Carbonite..." },
+      { id: "replacement_reason", label: "Why are you replacing it?", type: "multi", options: [
+        { label: "Too slow to backup/restore", description: "Backup windows too long or restores take forever" },
+        { label: "Unreliable / frequent failures", description: "Backups fail often, can't trust them" },
+        { label: "End-of-life / no longer supported", description: "Vendor sunset or software outdated" },
+        { label: "Doesn't support new systems", description: "Can't back up cloud, M365, or modern workloads" },
+        { label: "Too expensive", description: "Cost is too high for what it delivers" },
+        { label: "Lacks ransomware protection", description: "No immutability or air-gap features" },
+        { label: "Poor support or management", description: "Difficult to use or vendor support inadequate" },
+      ] },
+      { id: "data_volume", label: "Total data to protect", type: "select", options: ["Under 500 GB", "500 GB - 2 TB", "2 TB - 10 TB", "10 TB - 50 TB", "50+ TB", "Not sure"] },
+      { id: "environment", label: "What needs protecting?", type: "multi", options: [
+        { label: "Physical servers", description: "On-premise physical servers or appliances" },
+        { label: "Virtual machines (VMware/Hyper-V)", description: "Virtualized server infrastructure" },
+        { label: "Microsoft 365", description: "Email, SharePoint, OneDrive, Teams data" },
+        { label: "Google Workspace", description: "Gmail, Drive, Docs, shared files" },
+        { label: "Cloud servers (AWS/Azure/GCP)", description: "Cloud-hosted VMs or instances" },
+        { label: "Workstations / laptops", description: "End-user device data" },
+        { label: "Databases (SQL, Oracle, etc.)", description: "Production databases requiring point-in-time recovery" },
+        { label: "SaaS applications", description: "Salesforce, other cloud apps" },
+        { label: "Network-attached storage (NAS)", description: "Shared file storage or NAS devices" },
+      ] },
+      { id: "must_have_features", label: "Must-have features in new solution", type: "multi", options: [
+        { label: "Fast restores", description: "Quick recovery for minimal downtime" },
+        { label: "Ransomware protection", description: "Immutable or air-gapped backups" },
+        { label: "Cloud backup storage", description: "Offsite cloud copies for disaster recovery" },
+        { label: "Application-aware backups", description: "SQL, Exchange, Active Directory aware" },
+        { label: "Easy management console", description: "Simple, intuitive UI" },
+        { label: "Automated testing/validation", description: "Verify backups actually work" },
+        { label: "Flexible retention policies", description: "Granular control over how long to keep data" },
+      ] },
+      { id: "migration_concern", label: "Migration concerns", type: "select", options: ["Need zero downtime during switch", "Want to test new solution in parallel first", "Can accept brief maintenance window", "Full cutover is fine", "Not sure / need guidance"] },
+      { id: "budget_replacement", label: "Monthly budget", type: "select", options: ["Under $200/mo", "$200-500/mo", "$500-1,500/mo", "$1,500-3,000/mo", "$3,000-5,000/mo", "$5,000+/mo", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Current backup schedule, retention needs, pain points..." },
+    ],
+    // Disaster Recovery questions
+    fieldsDR: [
+      { id: "criticality", label: "How critical is uptime to your business?", type: "select", options: ["Mission-critical (revenue stops if we're down)", "Very important (significant business impact)", "Moderate (can tolerate some downtime)", "Low (downtime is inconvenient but manageable)"] },
+      { id: "rto", label: "Recovery Time Objective (how fast must you be back up?)", type: "select", options: ["Minutes (near-zero downtime)", "1-4 hours", "4-8 hours", "Same business day", "Next business day", "Not sure / Help me decide"] },
       { id: "rpo", label: "Recovery Point Objective (how much data can you lose?)", type: "select", options: ["None (real-time replication)", "15 minutes", "1 hour", "4 hours", "24 hours", "Not sure / Help me decide"] },
-      { id: "environment", label: "What needs protecting?", type: "multi", options: ["Physical servers", "Virtual machines (VMware/Hyper-V)", "Microsoft 365 (email, SharePoint, OneDrive)", "Google Workspace", "Cloud servers (AWS/Azure)", "Workstations / laptops", "Databases (SQL)", "SaaS applications"] },
-      { id: "retention", label: "How long do you need to retain backups?", type: "select", options: ["30 days", "90 days", "1 year", "3+ years", "7+ years (compliance)", "Not sure"] },
-      { id: "budget_bcdr", label: "Monthly budget", type: "select", options: ["Under $200/mo", "$200-500/mo", "$500-1,500/mo", "$1,500-3,000/mo", "$3,000+/mo", "Need guidance"] },
-      { id: "notes", label: "Additional context?", type: "textarea", placeholder: "Current backup solution, recent data loss events, compliance deadlines..." }
-    ]
+      { id: "dr_scope", label: "What needs disaster recovery protection?", type: "multi", options: [
+        { label: "Critical servers only", description: "Protect only mission-critical systems (e.g., ERP, database)" },
+        { label: "All servers", description: "Full server environment failover" },
+        { label: "Entire site/datacenter", description: "Complete site failover including network, storage, etc." },
+        { label: "Specific applications", description: "Application-level DR (e.g., SQL Always On, Exchange DAG)" },
+        { label: "Virtual machines", description: "VMware or Hyper-V VM replication" },
+        { label: "Cloud workloads", description: "AWS, Azure, or GCP instance failover" },
+      ] },
+      { id: "dr_location", label: "Where should DR failover target be?", type: "select", options: ["Cloud (AWS, Azure, GCP)", "Colo / secondary datacenter", "Managed DR provider facility", "Onsite (separate hardware)", "Not sure / need recommendation"] },
+      { id: "dr_testing", label: "DR testing requirements", type: "select", options: ["Monthly automated testing", "Quarterly testing", "Annual test", "Ad-hoc / as-needed", "Not sure"] },
+      { id: "current_backup", label: "Do you currently have backups in place?", type: "select", options: ["Yes, reliable backup solution", "Yes, but backups are unreliable", "Basic backups only", "No backup currently"] },
+      { id: "budget_dr", label: "Monthly budget for DR", type: "select", options: ["Under $1,000/mo", "$1,000-2,500/mo", "$2,500-5,000/mo", "$5,000-10,000/mo", "$10,000+/mo", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Prior outages, compliance requirements, runbook needs..." },
+    ],
+    // SaaS Backup questions
+    fieldsSaaS: [
+      { id: "saas_platform", label: "Which SaaS platforms need backup?", type: "multi", options: [
+        { label: "Microsoft 365", description: "Exchange Online, SharePoint, OneDrive, Teams" },
+        { label: "Google Workspace", description: "Gmail, Drive, Shared Drives, Calendar" },
+        { label: "Salesforce", description: "CRM data, custom objects, attachments" },
+        { label: "Dynamics 365", description: "Microsoft business applications" },
+        { label: "Box / Dropbox", description: "Cloud file storage" },
+        { label: "Slack", description: "Messages, files, conversations" },
+        { label: "Other SaaS apps", description: "Specify in notes" },
+      ] },
+      { id: "user_count", label: "Number of users", type: "select", options: ["1-10", "11-25", "26-50", "51-100", "101-250", "250-500", "500+"] },
+      { id: "saas_concern", label: "What concerns you most about SaaS data?", type: "multi", options: [
+        { label: "Accidental deletion", description: "Users delete files/emails by mistake" },
+        { label: "Ransomware", description: "Malicious encryption spreading to cloud data" },
+        { label: "Former employee data loss", description: "User accounts deleted with all their data" },
+        { label: "Compliance / eDiscovery", description: "Need long-term retention for legal/audit" },
+        { label: "No confidence in vendor backup", description: "Don't trust Microsoft/Google to protect data" },
+        { label: "Migration / portability", description: "Want data in independent format for migration" },
+      ] },
+      { id: "retention_saas", label: "How long do you need to retain SaaS backups?", type: "select", options: ["30 days", "90 days", "1 year", "3 years", "7+ years (compliance)", "Indefinite / unlimited"] },
+      { id: "granular_restore", label: "Restore requirements", type: "multi", options: [
+        { label: "Individual emails", description: "Restore single emails without full mailbox" },
+        { label: "Individual files/folders", description: "Granular OneDrive or Drive file recovery" },
+        { label: "Mailboxes", description: "Full user mailbox restore" },
+        { label: "SharePoint sites", description: "Entire site or site collection recovery" },
+        { label: "Point-in-time restore", description: "Restore to a specific date/time" },
+        { label: "Cross-user restore", description: "Restore one user's data to another account" },
+      ] },
+      { id: "budget_saas", label: "Monthly budget per user", type: "select", options: ["Under $2/user", "$2-4/user", "$4-8/user", "$8-15/user", "$15+/user", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Compliance needs, prior data loss, retention policies..." },
+    ],
+    // Compliance-Driven Backup questions
+    fieldsCompliance: [
+      { id: "compliance_framework", label: "Which compliance frameworks apply?", type: "multi", options: [
+        { label: "HIPAA", description: "Healthcare data protection" },
+        { label: "SOX (Sarbanes-Oxley)", description: "Financial data retention and integrity" },
+        { label: "PCI-DSS", description: "Payment card data security" },
+        { label: "FINRA / SEC", description: "Financial services regulations" },
+        { label: "GDPR", description: "EU data protection and privacy" },
+        { label: "CMMC", description: "Defense contractor cybersecurity" },
+        { label: "ISO 27001", description: "Information security management" },
+        { label: "State privacy laws", description: "CCPA, CPRA, etc." },
+        { label: "Industry-specific", description: "Specify in notes" },
+        { label: "Not sure / Need guidance", description: "Help identify applicable regulations" },
+      ] },
+      { id: "retention_compliance", label: "Required retention period", type: "select", options: ["1 year", "3 years", "5 years", "7 years", "10+ years", "Indefinite", "Varies by data type"] },
+      { id: "audit_frequency", label: "How often are you audited?", type: "select", options: ["Annually", "Quarterly", "Continuous monitoring", "Ad-hoc / customer audits", "Not yet audited (preparing)", "Not sure"] },
+      { id: "data_types", label: "What types of data need protection?", type: "multi", options: [
+        { label: "PHI (health records)", description: "Protected health information under HIPAA" },
+        { label: "PII (personal data)", description: "Social security numbers, personal identifiers" },
+        { label: "Financial records", description: "Transactions, accounting data" },
+        { label: "Email & communications", description: "Email archives for eDiscovery" },
+        { label: "Contracts & legal docs", description: "Agreements, legal holds" },
+        { label: "Customer data", description: "CRM, support tickets, customer records" },
+        { label: "Intellectual property", description: "Source code, trade secrets, designs" },
+        { label: "All business data", description: "Comprehensive backup of everything" },
+      ] },
+      { id: "compliance_features", label: "Required compliance features", type: "multi", options: [
+        { label: "Encryption at rest", description: "Data encrypted in backup storage" },
+        { label: "Encryption in transit", description: "Secure transfer to backup location" },
+        { label: "Immutable backups", description: "WORM or locked backups that can't be altered" },
+        { label: "Audit logging", description: "Track all backup, restore, and access activity" },
+        { label: "Role-based access control", description: "Limit who can manage or restore backups" },
+        { label: "Air-gapped backups", description: "Offline copies isolated from network" },
+        { label: "Legal hold capability", description: "Preserve data for litigation" },
+        { label: "Chain of custody", description: "Documented backup integrity and handling" },
+      ] },
+      { id: "environment", label: "What needs protecting?", type: "multi", options: [
+        { label: "Physical servers", description: "On-premise servers" },
+        { label: "Virtual machines", description: "VMware/Hyper-V" },
+        { label: "Microsoft 365", description: "Email, SharePoint, OneDrive" },
+        { label: "Google Workspace", description: "Gmail, Drive" },
+        { label: "Databases", description: "SQL, Oracle, etc." },
+        { label: "SaaS applications", description: "Salesforce, other cloud apps" },
+        { label: "File servers / NAS", description: "Shared storage" },
+      ] },
+      { id: "budget_compliance", label: "Monthly budget", type: "select", options: ["Under $500/mo", "$500-1,500/mo", "$1,500-3,000/mo", "$3,000-5,000/mo", "$5,000-10,000/mo", "$10,000+/mo", "Need guidance"] },
+      { id: "notes", label: "Additional context", type: "textarea", placeholder: "Audit findings, specific regulations, deadlines..." },
+    ],
   }
 ];
 
@@ -493,43 +871,6 @@ const MOCK_RECOMMENDATION = {
     notes: "This build prioritizes audio quality (the #1 complaint in conference rooms) and automatic framing so remote participants always see who's speaking. Installation and cabling typically adds $1,500-2,500 depending on your AV integrator."
   }
 };
-
-interface Field {
-  id: string;
-  label: string;
-  type: 'select' | 'multi' | 'text' | 'textarea';
-  options?: (string | { label: string; description?: string })[];
-  placeholder?: string;
-}
-
-interface Category {
-  id: string;
-  icon: string;
-  title: string;
-  subtitle: string;
-  color: string;
-  fields: Field[];
-  fieldsUCaaS?: Field[];
-  fieldsCCaaS?: Field[];
-  fieldsBoth?: Field[];
-  fieldsNewOffice?: Field[];
-  fieldsRefresh?: Field[];
-  fieldsWiFi?: Field[];
-  fieldsFirewall?: Field[];
-  fieldsSDWAN?: Field[];
-  fieldsTroubleshooting?: Field[];
-  fieldsGuestWiFi?: Field[];
-  fieldsCabling?: Field[];
-  fieldsISPFailover?: Field[];
-  fieldsRemoteSite?: Field[];
-  fieldsRemoteVPN?: Field[];
-  fieldsNewDataCenter?: Field[];
-  fieldsCloudMigration?: Field[];
-  fieldsHybridCloud?: Field[];
-  fieldsServerRefresh?: Field[];
-  fieldsDR?: Field[];
-  fieldsColo?: Field[];
-}
 
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -683,9 +1024,16 @@ export default function AISolutionsArchitect() {
   const [modificationRequest, setModificationRequest] = useState<string>('');
   const [isModifying, setIsModifying] = useState<boolean>(false);
   const [savedSolutions, setSavedSolutions] = useState<any[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [leftWidth, setLeftWidth] = useState(280); // Saved solutions panel width
   const [rightWidth, setRightWidth] = useState(380); // Chat panel width
+  const [roomImages, setRoomImages] = useState<Array<{ base64: string; mediaType: string; preview: string }>>([]);
+  const [roomAnalysis, setRoomAnalysis] = useState<any>(null);
+  const [analyzingRoom, setAnalyzingRoom] = useState(false);
+  const [showUploadChoice, setShowUploadChoice] = useState(false); // Show upload choice for collaboration
   const contentRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const category = CATEGORIES.find(c => c.id === selectedCategory);
 
@@ -737,21 +1085,236 @@ export default function AISolutionsArchitect() {
       return [...category.fields, ...tail];
     }
 
+    // Security conditional fields
+    if (category.id === 'security') {
+      const securityGoal: string[] = formData.security_goal || [];
+      // Only show conditional fields if exactly one option is selected
+      if (securityGoal.length !== 1) {
+        return category.fields;
+      }
+      const selectedGoal = securityGoal[0];
+      const tail = selectedGoal === 'Comprehensive Security Assessment' ? (category.fieldsAssessment ?? [])
+                  : selectedGoal === 'Endpoint Protection' ? (category.fieldsEndpoint ?? [])
+                  : selectedGoal === 'Compliance Readiness' ? (category.fieldsCompliance ?? [])
+                  : selectedGoal === 'Email & Phishing Defense' ? (category.fieldsEmail ?? [])
+                  : selectedGoal === 'Zero Trust & Identity' ? (category.fieldsZeroTrust ?? [])
+                  : [];
+      return [...category.fields, ...tail];
+    }
+
+    // BCDR conditional fields
+    if (category.id === 'bcdr') {
+      const bcdrGoal: string[] = formData.bcdr_goal || [];
+      // Only show conditional fields if exactly one option is selected
+      if (bcdrGoal.length !== 1) {
+        return category.fields;
+      }
+      const selectedGoal = bcdrGoal[0];
+      const tail = selectedGoal === 'New Backup Solution' ? (category.fieldsNewBackup ?? [])
+                  : selectedGoal === 'Backup Replacement' ? (category.fieldsReplacement ?? [])
+                  : selectedGoal === 'Disaster Recovery (DR)' ? (category.fieldsDR ?? [])
+                  : selectedGoal === 'SaaS Backup (M365/Google)' ? (category.fieldsSaaS ?? [])
+                  : selectedGoal === 'Compliance-Driven Backup' ? (category.fieldsCompliance ?? [])
+                  : [];
+      return [...category.fields, ...tail];
+    }
+
     return category.fields;
   })();
 
-  const handleCategorySelect = (catId: string) => {
-    // Redirect to dedicated Collaboration page
-    if (catId === 'collaboration') {
-      router.push('/ai-solutions/collaboration');
-      return;
-    }
+  const analyzeRoom = async (images: Array<{ base64: string; mediaType: string; preview: string }>) => {
+    setAnalyzingRoom(true);
+    try {
+      const ROOM_ANALYSIS_PROMPT = `You are an expert AV solutions architect analyzing a conference room photo. Examine the image carefully and provide a detailed assessment.
 
+Respond ONLY with valid JSON, no markdown, no backticks:
+{
+  "roomAssessment": {
+    "estimatedDimensions": "LxW estimate in feet",
+    "estimatedCapacity": "number of people",
+    "ceilingType": "drop tile / open / drywall / high ceiling",
+    "ceilingHeight": "estimated height in feet",
+    "wallMaterials": ["glass", "drywall", "wood", etc],
+    "floorType": "carpet / hardwood / tile / concrete",
+    "existingEquipment": ["list any visible AV equipment"],
+    "windowsAndLighting": "description of natural light and window positions",
+    "acousticConcerns": ["list potential acoustic issues"],
+    "tableShape": "rectangular / boat / U-shape / round / none visible",
+    "tableSize": "estimated length and width"
+  },
+  "recommendations": {
+    "displaySize": "recommended display size based on room depth",
+    "displayPlacement": "where to mount the display",
+    "microphoneType": "ceiling array vs table mics and why",
+    "cameraPlacement": "where to position the camera",
+    "acousticTreatment": "what acoustic treatment is needed",
+    "lightingNotes": "any lighting changes needed for video quality"
+  },
+  "concerns": ["list any issues or challenges you see with this room"],
+  "summary": "2-3 sentence plain-English summary of the room and what it needs"
+}`;
+
+      const promptText = images.length > 1
+        ? `Analyze these ${images.length} conference room photos from different angles for AV/video conferencing design. Combine insights from all angles to provide a comprehensive assessment. ${ROOM_ANALYSIS_PROMPT}`
+        : "Analyze this conference room photo for AV/video conferencing design. " + ROOM_ANALYSIS_PROMPT;
+
+      const res = await fetch("/api/analyze-room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: images.map(img => ({ base64: img.base64, mediaType: img.mediaType })),
+          prompt: promptText
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || `API returned status ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text = data.content?.map((c: any) => c.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setRoomAnalysis(parsed);
+
+      // Pre-fill form from analysis
+      const a = parsed.roomAssessment || {};
+      const r = parsed.recommendations || {};
+      const prefill: Record<string, any> = {};
+
+      // Auto-fill dimensions
+      if (a.estimatedDimensions) prefill.dimensions = a.estimatedDimensions;
+
+      // Auto-fill existing equipment
+      if (a.existingEquipment?.length) prefill.notes = `Existing equipment: ${a.existingEquipment.join(", ")}`;
+
+      // Auto-select room type based on capacity
+      const cap = parseInt(a.estimatedCapacity || "0") || 0;
+      if (cap > 0) {
+        if (cap <= 5) {
+          prefill.room_type = "Huddle Room (2-5)";
+        } else if (cap <= 12) {
+          prefill.room_type = "Medium Conference Room (6-12)";
+        } else if (cap <= 20) {
+          prefill.room_type = "Large Conference Room (12+ people)";
+        } else {
+          prefill.room_type = "Training Room / All-Hands";
+        }
+      }
+
+      // Auto-select display preference
+      if (r.displaySize) {
+        const disp = r.displaySize.toLowerCase();
+        if (disp.includes("dual")) {
+          prefill.display_pref = "Dual displays";
+        } else if (disp.includes("video wall") || disp.includes("led")) {
+          prefill.display_pref = "LED video wall";
+        } else {
+          prefill.display_pref = "Single large display";
+        }
+      }
+
+      // Auto-select audio needs based on recommendation
+      const audioNeeds: string[] = [];
+      if (r.microphoneType) {
+        const micType = r.microphoneType.toLowerCase();
+        if (micType.includes("ceiling")) {
+          audioNeeds.push("Ceiling microphones");
+          audioNeeds.push("Separate speakers");
+        } else if (micType.includes("table")) {
+          audioNeeds.push("Table microphones");
+        } else if (micType.includes("soundbar")) {
+          audioNeeds.push("Soundbar");
+        }
+      }
+      if (audioNeeds.length > 0) {
+        prefill.audio_needs = audioNeeds;
+      }
+
+      // Auto-select camera needs based on room size
+      const cameraNeeds: string[] = [];
+      if (cap > 8) {
+        cameraNeeds.push("Auto-framing / speaker tracking");
+        cameraNeeds.push("Panoramic view");
+      } else if (cap > 4) {
+        cameraNeeds.push("Auto-framing / speaker tracking");
+      } else {
+        cameraNeeds.push("Basic fixed camera is fine");
+      }
+      if (cameraNeeds.length > 0) {
+        prefill.camera_needs = cameraNeeds;
+      }
+
+      setFormData(f => ({ ...f, ...prefill }));
+    } catch (err) {
+      console.error("Room analysis error:", err);
+      setApiError("Failed to analyze room. Please check your API key and try again.");
+    }
+    setAnalyzingRoom(false);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImages: Array<{ base64: string; mediaType: string; preview: string }> = [];
+    let processedCount = 0;
+
+    Array.from(files).forEach((file) => {
+      const mediaType = file.type || "image/jpeg";
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        const base64 = result.split(",")[1];
+        newImages.push({ base64, mediaType, preview: result });
+        processedCount++;
+
+        if (processedCount === files.length) {
+          const allImages = [...roomImages, ...newImages];
+          setRoomImages(allImages);
+          analyzeRoom(allImages);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    const updatedImages = roomImages.filter((_, i) => i !== index);
+    setRoomImages(updatedImages);
+    if (updatedImages.length > 0) {
+      analyzeRoom(updatedImages);
+    } else {
+      setRoomAnalysis(null);
+    }
+  };
+
+  const handleCategorySelect = (catId: string) => {
     setSelectedCategory(catId);
     setCurrentStep(0);
     setFormData({});
     setShowResult(false);
-    setView('configure');
+    // Clear image data when switching categories
+    setRoomImages([]);
+    setRoomAnalysis(null);
+
+    // For collaboration, show upload choice first
+    if (catId === 'collaboration') {
+      setShowUploadChoice(true);
+      setView('configure');
+    } else {
+      setShowUploadChoice(false);
+      setView('configure');
+    }
+  };
+
+  const handleStartWithoutPhotos = () => {
+    setShowUploadChoice(false);
+  };
+
+  const handleContinueAfterUpload = () => {
+    setShowUploadChoice(false);
   };
 
   const handleFieldChange = (fieldId: string, value: any) => {
@@ -759,8 +1322,8 @@ export default function AISolutionsArchitect() {
   };
 
   const handleNext = async () => {
-    // For categories with conditional fields (UCaaS, Networking, Data Center), always advance to next step if we're on the first field (selector)
-    const isFirstFieldSelector = currentStep === 0 && (category?.id === 'ucaas' || category?.id === 'networking' || category?.id === 'datacenter');
+    // For categories with conditional fields (UCaaS, Networking, Data Center, Security, BCDR), always advance to next step if we're on the first field (selector)
+    const isFirstFieldSelector = currentStep === 0 && (category?.id === 'ucaas' || category?.id === 'networking' || category?.id === 'datacenter' || category?.id === 'security' || category?.id === 'bcdr');
 
     if (category && (currentStep < activeFields.length - 1 || isFirstFieldSelector)) {
       setCurrentStep(prev => prev + 1);
@@ -769,13 +1332,23 @@ export default function AISolutionsArchitect() {
       setIsGenerating(true);
       setApiError(null);
       try {
+        const payload: any = {
+          category: category?.title,
+          formData,
+        };
+
+        // Include images and room analysis for collaboration category
+        if (category?.id === 'collaboration' && roomImages.length > 0) {
+          payload.images = roomImages.map(img => ({ base64: img.base64, mediaType: img.mediaType }));
+          if (roomAnalysis) {
+            payload.roomAnalysis = roomAnalysis;
+          }
+        }
+
         const res = await fetch('/api/generate-design', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            category: category?.title,
-            formData,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to generate solution');
@@ -824,6 +1397,58 @@ export default function AISolutionsArchitect() {
     }
   };
 
+  // Auto-save effect - saves progress automatically when formData changes
+  useEffect(() => {
+    // Don't auto-save if no category selected or formData is empty
+    if (!selectedCategory || Object.keys(formData).length === 0) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Debounce auto-save by 1 second
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      const category = CATEGORIES.find(c => c.id === selectedCategory);
+      if (!category) return;
+
+      if (currentSessionId) {
+        // Update existing session
+        setSavedSolutions(prev =>
+          prev.map(solution =>
+            solution.id === currentSessionId
+              ? { ...solution, formData, result: apiResult, timestamp: new Date().toISOString() }
+              : solution
+          )
+        );
+      } else {
+        // Create new auto-save session
+        const newSessionId = `auto-${Date.now()}`;
+        const newSolution = {
+          id: newSessionId,
+          category: `${category.title} (Auto-saved)`,
+          categoryId: category.id,
+          categoryIcon: category.icon,
+          categoryColor: category.color,
+          result: apiResult,
+          formData,
+          timestamp: new Date().toISOString(),
+        };
+        setSavedSolutions(prev => [newSolution, ...prev]);
+        setCurrentSessionId(newSessionId);
+      }
+    }, 1000); // 1 second debounce
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [formData, selectedCategory, apiResult, currentSessionId]);
+
   const handleSaveSolution = () => {
     if (!apiResult || !category) return;
     const newSolution = {
@@ -837,6 +1462,8 @@ export default function AISolutionsArchitect() {
       timestamp: new Date().toISOString(),
     };
     setSavedSolutions(prev => [newSolution, ...prev]);
+    // Clear current session since we manually saved
+    setCurrentSessionId(null);
   };
 
   const handleLoadSolution = (solution: any) => {
@@ -844,10 +1471,15 @@ export default function AISolutionsArchitect() {
     setFormData(solution.formData);
     setApiResult(solution.result);
     setShowResult(true);
+    setCurrentSessionId(solution.id); // Set as current session
   };
 
-  const handleDeleteSolution = (id: number) => {
+  const handleDeleteSolution = (id: number | string) => {
     setSavedSolutions(prev => prev.filter(s => s.id !== id));
+    // If deleting current session, clear session ID
+    if (id === currentSessionId) {
+      setCurrentSessionId(null);
+    }
   };
 
   const handleResizeLeft = (e: React.MouseEvent) => {
@@ -915,6 +1547,7 @@ export default function AISolutionsArchitect() {
             @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
             @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             .cat-card:hover { transform: translateY(-4px) !important; border-color: var(--accent) !important; box-shadow: 0 8px 40px var(--glow) !important; }
             .cat-card:hover .cat-arrow { transform: translateX(4px); opacity: 1; }
           `}</style>
@@ -1190,57 +1823,358 @@ export default function AISolutionsArchitect() {
     );
   }
 
-  // CONFIGURE VIEW
-  if (view === 'configure' && !showResult && category) {
+  // CONFIGURE VIEW - UPLOAD CHOICE (Collaboration only)
+  if (view === 'configure' && !showResult && category && showUploadChoice && category.id === 'collaboration') {
     return (
       <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
         <SiteHeader />
-
         <div style={{
-          minHeight: "calc(100vh - 80px)",
-          background: "#0c0f18",
-          color: "#e2e8f0",
-          fontFamily: "'Outfit', sans-serif"
+          height: "calc(100vh - 52px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px",
         }}>
-          <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-            @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-            .opt-btn:hover { border-color: ${category?.color} !important; background: ${category?.color}15 !important; color: #e2e8f0 !important; }
-            .nav-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important; }
-            .nav-btn-back:not(:disabled):hover { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.25) !important; color: #e2e8f0 !important; transform: translateX(-2px); }
-            .nav-btn-next:not(:disabled):hover { background: ${category?.color}30 !important; color: #fff !important; box-shadow: 0 4px 16px ${category?.color}40 !important; transform: translateX(2px); }
-            .nav-btn-generate:not(:disabled):hover { filter: brightness(1.12); box-shadow: 0 4px 20px ${category?.color}60 !important; transform: translateY(-1px); }
-          `}</style>
+          <div style={{ maxWidth: "900px", width: "100%" }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleImageUpload}
+              multiple
+              style={{ display: "none" }}
+            />
 
-          {/* Header */}
-          <header style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button onClick={() => setView('home')} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: "13px", fontFamily: "inherit" }}>← Back</button>
-              <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
-              <span style={{ fontSize: "20px" }}>{category?.icon}</span>
-              <span style={{ fontSize: "15px", fontWeight: 500 }}>{category?.title}</span>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: "48px" }}>
+              <div style={{ fontSize: "48px", marginBottom: "16px", animation: "float 3s ease-in-out infinite" }}>
+                🎥
+              </div>
+              <h1 style={{ fontSize: "32px", fontWeight: 700, color: "#e2e8f0", marginBottom: "12px", letterSpacing: "-0.02em" }}>
+                Design Your Collaboration Room
+              </h1>
+              <p style={{ fontSize: "15px", color: "#94a3b8", lineHeight: 1.6 }}>
+                Upload photos of your room for AI-powered analysis, or start the wizard directly
+              </p>
             </div>
-          </header>
 
-          {/* Generation Loading */}
-          {isGenerating ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh", gap: "24px", animation: "fadeIn 0.5s ease" }}>
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "50%",
-                border: `3px solid ${category?.color}20`,
-                borderTopColor: category?.color,
-                animation: "spin 1s linear infinite"
-              }} />
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "18px", fontWeight: 500, marginBottom: "8px" }}>Designing your solution...</p>
-                <p style={{ fontSize: "14px", color: "#475569", animation: "pulse 2s ease infinite" }}>Analyzing requirements, comparing vendors, calculating costs</p>
+            {roomImages.length > 0 && !analyzingRoom && roomAnalysis ? (
+              /* Show analysis results and continue button */
+              <div>
+                <div style={{ marginBottom: "32px", padding: "24px", borderRadius: "16px", border: "1px solid rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                    <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "rgba(16,185,129,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>
+                      ✓
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: "18px", fontWeight: 600, color: "#10b981", margin: 0, marginBottom: "4px" }}>
+                        Room Analysis Complete
+                      </h3>
+                      <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+                        {roomImages.length} photo{roomImages.length > 1 ? 's' : ''} analyzed
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: "8px", marginBottom: "16px" }}>
+                    {roomImages.map((img, idx) => (
+                      <div key={idx} style={{ position: "relative", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", aspectRatio: "4/3" }}>
+                        <img src={img.preview} alt={`Room ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ padding: "16px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <h4 style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", marginBottom: "8px" }}>AI Analysis Summary:</h4>
+                    <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>
+                      {roomAnalysis.summary}
+                    </p>
+                  </div>
+
+                  {roomAnalysis.roomAssessment && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", marginTop: "16px" }}>
+                      {roomAnalysis.roomAssessment.estimatedDimensions && (
+                        <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Dimensions</div>
+                          <div style={{ fontSize: "14px", color: "#e2e8f0", fontWeight: 600 }}>{roomAnalysis.roomAssessment.estimatedDimensions}</div>
+                        </div>
+                      )}
+                      {roomAnalysis.roomAssessment.estimatedCapacity && (
+                        <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Capacity</div>
+                          <div style={{ fontSize: "14px", color: "#e2e8f0", fontWeight: 600 }}>{roomAnalysis.roomAssessment.estimatedCapacity} people</div>
+                        </div>
+                      )}
+                      {roomAnalysis.roomAssessment.ceilingType && (
+                        <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Ceiling</div>
+                          <div style={{ fontSize: "14px", color: "#e2e8f0", fontWeight: 600 }}>{roomAnalysis.roomAssessment.ceilingType}</div>
+                        </div>
+                      )}
+                      {roomAnalysis.roomAssessment.floorType && (
+                        <div style={{ padding: "12px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                          <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Floor</div>
+                          <div style={{ fontSize: "14px", color: "#e2e8f0", fontWeight: 600 }}>{roomAnalysis.roomAssessment.floorType}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button
+                    onClick={() => {
+                      setRoomImages([]);
+                      setRoomAnalysis(null);
+                    }}
+                    style={{
+                      padding: "16px 24px",
+                      borderRadius: "12px",
+                      border: "2px solid rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.02)",
+                      color: "#94a3b8",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                    }}
+                  >
+                    ← Upload Different Photos
+                  </button>
+                  <button
+                    onClick={handleContinueAfterUpload}
+                    style={{
+                      flex: 1,
+                      padding: "16px 32px",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                      color: "#fff",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: "0 4px 20px rgba(14,165,233,0.3)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 6px 30px rgba(14,165,233,0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 4px 20px rgba(14,165,233,0.3)";
+                    }}
+                  >
+                    Continue to Wizard →
+                  </button>
+                </div>
+                <p style={{ textAlign: "center", fontSize: "12px", color: "#64748b", marginTop: "16px" }}>
+                  Some fields will be pre-filled based on the AI analysis. You can review and adjust them.
+                </p>
+              </div>
+            ) : analyzingRoom ? (
+              /* Show analyzing state */
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <div style={{ width: "64px", height: "64px", border: "3px solid rgba(255,255,255,0.1)", borderTopColor: "#0ea5e9", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 24px" }} />
+                <h3 style={{ fontSize: "18px", fontWeight: 600, color: "#e2e8f0", marginBottom: "8px" }}>
+                  Analyzing Your Room...
+                </h3>
+                <p style={{ fontSize: "14px", color: "#64748b" }}>
+                  The AI is examining {roomImages.length} photo{roomImages.length > 1 ? 's' : ''} to understand your space
+                </p>
+              </div>
+            ) : (
+              /* Show upload or start options */
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                {/* Upload Photos Option */}
+                <div
+                  onClick={() => fileRef.current?.click()}
+                  style={{
+                    padding: "40px 32px",
+                    borderRadius: "16px",
+                    border: "2px solid rgba(14,165,233,0.2)",
+                    background: "linear-gradient(135deg, rgba(14,165,233,0.08), rgba(6,182,212,0.05))",
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    textAlign: "center",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#0ea5e9";
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.boxShadow = "0 12px 40px rgba(14,165,233,0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(14,165,233,0.2)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <div style={{ fontSize: "48px", marginBottom: "20px" }}>📸</div>
+                  <h3 style={{ fontSize: "20px", fontWeight: 600, color: "#e2e8f0", marginBottom: "12px" }}>
+                    Upload Room Photos
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.6, marginBottom: "16px" }}>
+                    Let AI analyze your room to auto-detect dimensions, ceiling type, windows, and surfaces
+                  </p>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#0ea5e9" }}>
+                    Recommended
+                    <span style={{ fontSize: "16px" }}>→</span>
+                  </div>
+                </div>
+
+                {/* Start Without Photos Option */}
+                <div
+                  onClick={handleStartWithoutPhotos}
+                  style={{
+                    padding: "40px 32px",
+                    borderRadius: "16px",
+                    border: "2px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.02)",
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    textAlign: "center",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                  }}
+                >
+                  <div style={{ fontSize: "48px", marginBottom: "20px" }}>📝</div>
+                  <h3 style={{ fontSize: "20px", fontWeight: 600, color: "#e2e8f0", marginBottom: "12px" }}>
+                    Start Without Photos
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.6, marginBottom: "16px" }}>
+                    Answer questions manually about your room setup and requirements
+                  </p>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#94a3b8" }}>
+                    Quick start
+                    <span style={{ fontSize: "16px" }}>→</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Back button */}
+            <div style={{ textAlign: "center", marginTop: "32px" }}>
+              <button
+                onClick={() => {
+                  setView('home');
+                  setSelectedCategory(null);
+                  setShowUploadChoice(false);
+                  setRoomImages([]);
+                  setRoomAnalysis(null);
+                }}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "transparent",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#94a3b8"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#64748b"}
+              >
+                ← Back to Categories
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CONFIGURE VIEW
+  if (view === 'configure' && !showResult && category) {
+    return (
+      <div className="bg-slate-950 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <SiteHeader />
+
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+          @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+          .opt-btn:hover { border-color: ${category?.color} !important; background: ${category?.color}15 !important; color: #e2e8f0 !important; }
+          .nav-btn { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important; }
+          .nav-btn-back:not(:disabled):hover { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.25) !important; color: #e2e8f0 !important; transform: translateX(-2px); }
+          .nav-btn-next:not(:disabled):hover { background: ${category?.color}30 !important; color: #fff !important; box-shadow: 0 4px 16px ${category?.color}40 !important; transform: translateX(2px); }
+          .nav-btn-generate:not(:disabled):hover { filter: brightness(1.12); box-shadow: 0 4px 20px ${category?.color}60 !important; transform: translateY(-1px); }
+        `}</style>
+
+        <div style={{ flex: 1, display: "flex", background: "#0c0f18", color: "#e2e8f0", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+          {/* Left Panel - Saved Solutions */}
+          <aside style={{
+            width: `${leftWidth}px`,
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            background: "#0a0d14",
+            overflow: "hidden",
+          }}>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+              <button onClick={() => setView('home')} style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: "13px", fontFamily: "inherit", marginBottom: "12px", width: "100%" }}>← Back to Categories</button>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+                <span style={{ fontSize: "18px" }}>{category?.icon}</span>
+                <span style={{ fontSize: "14px", fontWeight: 600 }}>{category?.title}</span>
               </div>
             </div>
-          ) : (
-            <main ref={contentRef} style={{ maxWidth: "680px", margin: "0 auto", padding: "48px 40px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+              <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
+                Saved solutions will appear here after generation.
+              </p>
+            </div>
+          </aside>
+
+          {/* Resize Handle - Left */}
+          <div
+            onMouseDown={handleResizeLeft}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+            }}
+          />
+
+          {/* Main Content - Wizard */}
+          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "40px 20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+            {/* Ambient background */}
+            <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: `radial-gradient(circle, ${category?.color}10 0%, transparent 70%)`, pointerEvents: "none" }} />
+
+            <div style={{ width: "100%", maxWidth: "700px", position: "relative", zIndex: 1 }}>
+              {isGenerating ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh", gap: "24px", animation: "fadeIn 0.5s ease" }}>
+                  <div style={{
+                    width: "56px", height: "56px", borderRadius: "50%",
+                    border: `3px solid ${category?.color}20`,
+                    borderTopColor: category?.color,
+                    animation: "spin 1s linear infinite"
+                  }} />
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px", color: "#e2e8f0" }}>Designing your solution...</p>
+                    <p style={{ fontSize: "14px", color: "#64748b", animation: "pulse 2s ease infinite" }}>Analyzing requirements, comparing vendors, calculating costs</p>
+                  </div>
+                </div>
+              ) : (
+                <div ref={contentRef}>
               <ProgressBar current={currentStep + 1} total={activeFields.length} color={category?.color} />
 
               <div key={currentStep} style={{ animation: "slideUp 0.4s ease" }}>
@@ -1249,6 +2183,11 @@ export default function AISolutionsArchitect() {
                 </h2>
                 <p style={{ fontSize: "13px", color: "#475569", marginBottom: "28px" }}>
                   Step {currentStep + 1} of {activeFields.length}
+                  {category?.id === 'collaboration' && roomAnalysis && formData[currentField?.id || ''] && (
+                    <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 8px", borderRadius: "12px", background: "rgba(16,185,129,0.12)", color: "#10b981", fontWeight: 600 }}>
+                      📷 Pre-filled
+                    </span>
+                  )}
                 </p>
 
                 {currentField?.type === 'select' && currentField.options && (
@@ -1361,9 +2300,98 @@ export default function AISolutionsArchitect() {
                   )}
                 </button>
               </div>
-            </main>
-          )}
+                </div>
+              )}
+            </div>
+          </main>
+
+          {/* Resize Handle - Right */}
+          <div
+            onMouseDown={handleResizeRight}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+            }}
+          />
+
+          {/* Right Panel - AI Chat */}
+          <aside style={{
+            width: `${rightWidth}px`,
+            borderLeft: "1px solid rgba(255,255,255,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            background: "#0a0d14",
+            overflow: "hidden",
+          }}>
+            <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>💬</span>
+                Ask AI Architect
+              </h3>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
+                Ask questions about {category?.title.toLowerCase()} or get help with your configuration.
+              </p>
+              <textarea
+                value={modificationRequest}
+                onChange={(e) => setModificationRequest(e.target.value)}
+                placeholder={`e.g., What's the difference between ${category?.id === 'ucaas' ? 'UCaaS and CCaaS' : 'these options'}?`}
+                style={{
+                  width: "100%",
+                  minHeight: "200px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(0,0,0,0.3)",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  marginBottom: "12px",
+                }}
+              />
+              <button
+                onClick={() => {
+                  alert("AI chat functionality coming soon!");
+                }}
+                disabled={!modificationRequest.trim()}
+                style={{
+                  width: "100%",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: modificationRequest.trim() ? `linear-gradient(135deg, ${category?.color}, ${category?.color}cc)` : "rgba(255,255,255,0.1)",
+                  color: modificationRequest.trim() ? "#fff" : "#64748b",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: modificationRequest.trim() ? "pointer" : "default",
+                  transition: "all 0.2s",
+                  fontFamily: "inherit"
+                }}
+              >
+                Send Question
+              </button>
+            </div>
+          </aside>
         </div>
+
+        {/* Footer */}
+        <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px 0", fontSize: "11px", color: "#64748b", textAlign: "center", background: "#0c0f18" }}>
+          Powered by{' '}
+          <a
+            href="https://www.techsolutions.cc"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s" }}
+            onMouseEnter={(e) => e.currentTarget.style.color = "#e2e8f0"}
+            onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+          >
+            InterPeak Technology Solutions
+          </a>
+        </footer>
       </div>
     );
   }
@@ -1583,7 +2611,7 @@ export default function AISolutionsArchitect() {
                       {/* Selected Tier Sections */}
                       {tier.sections?.map((section: any, si: number) => (
                         <div key={section.heading} style={{ marginBottom: "24px", animation: `slideUp 0.4s ease ${si * 0.08}s both` }}>
-                          <h3 style={{ fontSize: "11px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px", fontFamily: "'DM Mono', monospace" }}>{section.heading}</h3>
+                          <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", fontFamily: "'DM Mono', monospace" }}>{section.heading}</h3>
                           {section.items?.map((item: any, ii: number) => (
                             <div key={ii} style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", marginBottom: "8px" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
@@ -1604,7 +2632,7 @@ export default function AISolutionsArchitect() {
 
                       {/* Tier Totals */}
                       <div style={{ padding: "20px 24px", borderRadius: "10px", background: `linear-gradient(135deg, ${category?.color}10, ${category?.color}05)`, border: `1px solid ${category?.color}30`, marginBottom: "12px" }}>
-                        <h3 style={{ fontSize: "11px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px", fontFamily: "'DM Mono', monospace" }}>Cost Summary</h3>
+                        <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "14px", fontFamily: "'DM Mono', monospace" }}>Cost Summary</h3>
 
                         {/* Monthly Recurring — primary for UCaaS */}
                         {tier.monthlyRecurring && (
@@ -1644,7 +2672,7 @@ export default function AISolutionsArchitect() {
                     {/* NON-TIERED: flat sections */}
                     {rec.sections?.map((section: any, si: number) => (
                       <div key={section.heading} style={{ marginBottom: "24px", animation: `slideUp 0.6s ease ${0.1 + si * 0.1}s both` }}>
-                        <h3 style={{ fontSize: "11px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px", fontFamily: "'DM Mono', monospace" }}>{section.heading}</h3>
+                        <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", fontFamily: "'DM Mono', monospace" }}>{section.heading}</h3>
                         {section.items?.map((item: any, ii: number) => (
                           <div key={ii} style={{ padding: "18px 20px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)", marginBottom: "8px" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
@@ -1686,7 +2714,7 @@ export default function AISolutionsArchitect() {
                     {/* Alternatives */}
                     {rec.alternatives?.length > 0 && (
                       <div style={{ marginBottom: "16px", animation: "slideUp 0.6s ease 0.65s both" }}>
-                        <h3 style={{ fontSize: "11px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px", fontFamily: "'DM Mono', monospace" }}>Alternatives to Consider</h3>
+                        <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", fontFamily: "'DM Mono', monospace" }}>Alternatives to Consider</h3>
                         {rec.alternatives.map((alt: any, i: number) => (
                           <div key={i} style={{ padding: "14px 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", marginBottom: "8px", fontSize: "13px", color: "#94a3b8" }}>
                             <span style={{ color: "#e2e8f0", fontWeight: 500 }}>{alt.description}</span>
@@ -1710,7 +2738,7 @@ export default function AISolutionsArchitect() {
                 {/* Questions to Ask */}
                 {rec.questionsToAskVendor?.length > 0 && (
                   <div style={{ marginBottom: "24px", animation: "slideUp 0.6s ease 0.7s both" }}>
-                    <h3 style={{ fontSize: "11px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px", fontFamily: "'DM Mono', monospace" }}>Questions to Ask Your Vendor</h3>
+                    <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "12px", fontFamily: "'DM Mono', monospace" }}>Questions to Ask Your Vendor</h3>
                     {rec.questionsToAskVendor.map((q: string, i: number) => (
                       <div key={i} style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", marginBottom: "6px", fontSize: "13px", color: "#94a3b8", display: "flex", gap: "10px" }}>
                         <span style={{ color: category?.color, fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>

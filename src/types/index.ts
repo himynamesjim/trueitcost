@@ -74,12 +74,16 @@ export type YesNoNotSure = 'yes' | 'no' | 'not-sure';
 export type YesPartialNoNotSure = 'yes' | 'partial' | 'no' | 'not-sure';
 export type Satisfaction = 'yes' | 'somewhat' | 'no';
 export type SecurityAssessmentTiming = 'within-1-year' | '1-2-years' | 'never' | 'not-sure';
+export type AssessmentType = 'evaluate-current' | 'explore-msp';
 
 // ===========================================
 // WIZARD ANSWERS
 // ===========================================
 
 export interface WizardAnswers {
+  // Section 0: Assessment Type
+  assessmentType: AssessmentType | null;
+
   // Section 1: Business Basics
   employeeCount: number | null;
   industry: Industry | null;
@@ -184,7 +188,8 @@ export interface LeadInfo {
 // APP STATE
 // ===========================================
 
-export type WizardStep = 
+export type WizardStep =
+  | 'assessment-type'
   | 'business-basics'
   | 'it-support'
   | 'infrastructure'

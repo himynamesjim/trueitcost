@@ -15,9 +15,12 @@ import { SiteHeader } from '@/components/site-header';
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Header */}
       <SiteHeader />
+
+      {/* Scrollable Content */}
+      <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-slate-900 to-slate-800 text-white py-20 px-4">
@@ -281,20 +284,23 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-slate-950 dark:bg-black text-slate-400 dark:text-slate-500 py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-emerald-500" />
-            <span className="font-semibold text-white">TrueITCost</span>
-          </div>
-          <p className="text-sm">
-            © {new Date().getFullYear()} TrueITCost. Making IT decisions clearer with AI-powered insights.
-          </p>
-        </div>
+      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px 0", fontSize: "11px", color: "#64748b", textAlign: "center", background: "#0c0f18" }}>
+        Powered by{' '}
+        <a
+          href="https://www.techsolutions.cc"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s" }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "#e2e8f0"}
+          onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+        >
+          InterPeak Technology Solutions
+        </a>
       </footer>
-    </main>
+    </div>
   );
 }
 

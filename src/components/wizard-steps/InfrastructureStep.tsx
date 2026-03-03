@@ -7,66 +7,60 @@ import { Server, HardDrive, Clock, AlertTriangle } from 'lucide-react';
 export function InfrastructureStep() {
   const { wizardAnswers, updateWizardAnswers, nextStep, prevStep } = useAssessmentStore();
 
-  const [infrastructureLocation, setInfrastructureLocation] = useState(
-    wizardAnswers.infrastructureLocation || ''
+  const [infrastructureLocation, setInfrastructureLocation] = useState<import('@/types').InfrastructureLocation | null>(
+    wizardAnswers.infrastructureLocation || null
   );
-  const [hasPhysicalServers, setHasPhysicalServers] = useState(
-    wizardAnswers.hasPhysicalServers?.toString() || ''
+  const [hasPhysicalServers, setHasPhysicalServers] = useState<import('@/types').YesNoNotSure | null>(
+    wizardAnswers.hasPhysicalServers ? 'yes' : (wizardAnswers.hasPhysicalServers === false ? 'no' : null)
   );
-  const [oldestHardwareAge, setOldestHardwareAge] = useState(
-    wizardAnswers.oldestHardwareAge || ''
+  const [oldestHardwareAge, setOldestHardwareAge] = useState<import('@/types').HardwareAge | null>(
+    wizardAnswers.oldestHardwareAge || null
   );
-  const [hardwareConcerns, setHardwareConcerns] = useState(
-    wizardAnswers.hardwareConcerns?.toString() || ''
+  const [hardwareConcerns, setHardwareConcerns] = useState<boolean | null>(
+    wizardAnswers.hardwareConcerns
   );
-  const [concernedHardwareTypes, setConcernedHardwareTypes] = useState<string[]>(
-    wizardAnswers.concernedHardwareTypes || []
-  );
-
-  const toggleHardwareType = (type: string) => {
-    setConcernedHardwareTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
 
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      infrastructureLocation: infrastructureLocation || null,
-      hasPhysicalServers: hasPhysicalServers === 'true',
-      oldestHardwareAge: oldestHardwareAge || null,
-      hardwareConcerns: hardwareConcerns === 'true',
-      concernedHardwareTypes: hardwareConcerns === 'true' ? concernedHardwareTypes : [],
+      infrastructureLocation: infrastructureLocation,
+      hasPhysicalServers: hasPhysicalServers === 'yes' ? true : (hasPhysicalServers === 'no' ? false : null),
+      oldestHardwareAge: oldestHardwareAge,
+      hardwareConcerns: hardwareConcerns,
     });
     nextStep();
   };
 
   const isValid = () => {
-    const baseValid =
+    return (
       infrastructureLocation &&
       hasPhysicalServers &&
       oldestHardwareAge &&
-      hardwareConcerns;
-
-    // If they have hardware concerns, they must select at least one type
-    if (hardwareConcerns === 'true') {
-      return baseValid && concernedHardwareTypes.length > 0;
-    }
-
-    return baseValid;
+      hardwareConcerns !== null
+    );
   };
 
-  const locationOptions = ['On-prem', 'Cloud', 'Hybrid', 'Not sure'];
-  const yesNoOptions = ['Yes', 'No'];
-  const hardwareAgeOptions = ['Under 3 yrs', '3-5 yrs', '5-7 yrs', '7+ yrs', 'Not sure'];
-  const hardwareTypeOptions = [
-    'Servers',
-    'Switches',
-    'Routers',
-    'Wireless Hardware',
-    'Computers',
-    'Mobile Devices',
-    'Other',
+  const locationOptions: Array<{ label: string; value: import('@/types').InfrastructureLocation }> = [
+    { label: 'On-prem', value: 'on-prem' },
+    { label: 'Cloud', value: 'cloud' },
+    { label: 'Hybrid', value: 'hybrid' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const yesNoOptions: Array<{ label: string; value: import('@/types').YesNoNotSure }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'No', value: 'no' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const hardwareAgeOptions: Array<{ label: string; value: import('@/types').HardwareAge }> = [
+    { label: 'Under 3 yrs', value: 'under-3' },
+    { label: '3-5 yrs', value: '3-5' },
+    { label: '5-7 yrs', value: '5-7' },
+    { label: '7+ yrs', value: '7-plus' },
+    { label: 'Not sure', value: 'not-sure' },
+  ];
+  const hardwareConcernOptions = [
+    { label: 'Yes', value: true },
+    { label: 'No', value: false },
   ];
 
   return (
@@ -181,37 +175,6 @@ export function InfrastructureStep() {
         </div>
       </div>
 
-      {/* Conditional: Hardware Types (if they have concerns) */}
-      {hardwareConcerns === 'true' && (
-        <div className="space-y-3 animate-fadeIn">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Which types of hardware are you concerned about?
-          </label>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Select all that apply
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {hardwareTypeOptions.map((type) => (
-              <button
-                key={type}
-                onClick={() => toggleHardwareType(type)}
-                className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                  concernedHardwareTypes.includes(type)
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-          {concernedHardwareTypes.length > 0 && (
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
-              {concernedHardwareTypes.length} type{concernedHardwareTypes.length !== 1 ? 's' : ''} selected
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Navigation Buttons */}
       <div className="flex justify-between pt-6 border-t border-slate-200 dark:border-slate-700">

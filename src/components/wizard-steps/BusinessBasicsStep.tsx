@@ -15,7 +15,7 @@ export function BusinessBasicsStep() {
     // Save answers to store
     updateWizardAnswers({
       employeeCount: employeeCount ? parseInt(employeeCount) : null,
-      industry: industry || null,
+      industry: (industry as any) || null,
       annualRevenue: annualRevenue ? parseFloat(annualRevenue) : null,
     });
     nextStep();

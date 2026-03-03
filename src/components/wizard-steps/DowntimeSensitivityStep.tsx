@@ -7,18 +7,18 @@ import { AlertCircle, Timer } from 'lucide-react';
 export function DowntimeSensitivityStep() {
   const { wizardAnswers, updateWizardAnswers, nextStep, prevStep } = useAssessmentStore();
 
-  const [downtimeImpact, setDowntimeImpact] = useState(
-    wizardAnswers.downtimeImpact || ''
+  const [downtimeImpact, setDowntimeImpact] = useState<import('@/types').DowntimeImpact | null>(
+    wizardAnswers.downtimeImpact || null
   );
-  const [downtimeTolerance, setDowntimeTolerance] = useState(
-    wizardAnswers.downtimeTolerance || ''
+  const [downtimeTolerance, setDowntimeTolerance] = useState<import('@/types').DowntimeTolerance | null>(
+    wizardAnswers.downtimeTolerance || null
   );
 
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      downtimeImpact: downtimeImpact || null,
-      downtimeTolerance: downtimeTolerance || null,
+      downtimeImpact: downtimeImpact,
+      downtimeTolerance: downtimeTolerance,
     });
     nextStep();
   };
@@ -27,8 +27,19 @@ export function DowntimeSensitivityStep() {
     return downtimeImpact && downtimeTolerance;
   };
 
-  const impactOptions = ['Business stops', 'Major disruption', 'Moderate', 'Minimal'];
-  const toleranceOptions = ['Zero', 'A few hours', 'A day', 'Flexible'];
+  const impactOptions: Array<{ label: string; value: import('@/types').DowntimeImpact }> = [
+    { label: 'Business stops', value: 'business-stops' },
+    { label: 'Major disruption', value: 'major-disruption' },
+    { label: 'Moderate', value: 'moderate' },
+    { label: 'Minimal', value: 'minimal' },
+  ];
+
+  const toleranceOptions: Array<{ label: string; value: import('@/types').DowntimeTolerance }> = [
+    { label: 'Zero', value: 'zero' },
+    { label: 'A few hours', value: 'few-hours' },
+    { label: 'A day', value: 'a-day' },
+    { label: 'Flexible', value: 'flexible' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -44,15 +55,15 @@ export function DowntimeSensitivityStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {impactOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setDowntimeImpact(option)}
+              key={option.value}
+              onClick={() => setDowntimeImpact(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                downtimeImpact === option
+                downtimeImpact === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -70,15 +81,15 @@ export function DowntimeSensitivityStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {toleranceOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setDowntimeTolerance(option)}
+              key={option.value}
+              onClick={() => setDowntimeTolerance(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                downtimeTolerance === option
+                downtimeTolerance === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>

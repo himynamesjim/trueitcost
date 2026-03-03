@@ -13,6 +13,9 @@ import type {
 // ===========================================
 
 const initialWizardAnswers: WizardAnswers = {
+  // Section 0: Assessment Type
+  assessmentType: null,
+
   // Section 1: Business Basics
   employeeCount: null,
   industry: null,
@@ -52,6 +55,7 @@ const initialWizardAnswers: WizardAnswers = {
 };
 
 const WIZARD_STEPS: WizardStep[] = [
+  'assessment-type',
   'business-basics',
   'it-support',
   'infrastructure',
@@ -121,7 +125,7 @@ interface AssessmentStore {
 
 export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
   // Initial State
-  currentStep: 'business-basics',
+  currentStep: 'assessment-type',
   wizardAnswers: initialWizardAnswers,
   wizardComplete: false,
   selectedCalculators: [],
@@ -518,7 +522,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
 
   // Reset
   reset: () => set({
-    currentStep: 'business-basics',
+    currentStep: 'assessment-type',
     wizardAnswers: initialWizardAnswers,
     wizardComplete: false,
     selectedCalculators: [],

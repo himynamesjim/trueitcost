@@ -9,14 +9,14 @@ export function DecisionDriversStep() {
   const router = useRouter();
   const { wizardAnswers, updateWizardAnswers, prevStep, completeWizard } = useAssessmentStore();
 
-  const [decisionDrivers, setDecisionDrivers] = useState<string[]>(
+  const [decisionDrivers, setDecisionDrivers] = useState<import('@/types').DecisionDriver[]>(
     wizardAnswers.decisionDrivers || []
   );
-  const [timeline, setTimeline] = useState(
-    wizardAnswers.timeline || ''
+  const [timeline, setTimeline] = useState<import('@/types').Timeline | null>(
+    wizardAnswers.timeline || null
   );
 
-  const toggleDecisionDriver = (driver: string) => {
+  const toggleDecisionDriver = (driver: import('@/types').DecisionDriver) => {
     setDecisionDrivers((prev) =>
       prev.includes(driver) ? prev.filter((d) => d !== driver) : [...prev, driver]
     );
@@ -26,7 +26,7 @@ export function DecisionDriversStep() {
     // Save answers to store
     updateWizardAnswers({
       decisionDrivers: decisionDrivers,
-      timeline: timeline || null,
+      timeline: timeline,
     });
 
     // Mark wizard as complete and generate recommendations
@@ -41,16 +41,21 @@ export function DecisionDriversStep() {
     return decisionDrivers.length > 0 && timeline;
   };
 
-  const driverOptions = [
-    'Replace hardware',
-    'Hire or outsource IT',
-    'Move to cloud',
-    'Improve security',
-    'Reduce costs',
-    'Just exploring',
+  const driverOptions: Array<{ label: string; value: import('@/types').DecisionDriver }> = [
+    { label: 'Replace hardware', value: 'replace-hardware' },
+    { label: 'Hire or outsource IT', value: 'hire-outsource' },
+    { label: 'Move to cloud', value: 'move-to-cloud' },
+    { label: 'Improve security', value: 'improve-security' },
+    { label: 'Reduce costs', value: 'reduce-costs' },
+    { label: 'Just exploring', value: 'just-exploring' },
   ];
 
-  const timelineOptions = ['Urgent', 'This quarter', 'This year', 'Just planning'];
+  const timelineOptions: Array<{ label: string; value: import('@/types').Timeline }> = [
+    { label: 'Urgent', value: 'urgent' },
+    { label: 'This quarter', value: 'this-quarter' },
+    { label: 'This year', value: 'this-year' },
+    { label: 'Just planning', value: 'just-planning' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -64,17 +69,17 @@ export function DecisionDriversStep() {
           Routes calculators • Select all that apply
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {driverOptions.map((driver) => (
+          {driverOptions.map((option) => (
             <button
-              key={driver}
-              onClick={() => toggleDecisionDriver(driver)}
+              key={option.value}
+              onClick={() => toggleDecisionDriver(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                decisionDrivers.includes(driver)
+                decisionDrivers.includes(option.value)
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {driver}
+              {option.label}
             </button>
           ))}
         </div>
@@ -97,15 +102,15 @@ export function DecisionDriversStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {timelineOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setTimeline(option)}
+              key={option.value}
+              onClick={() => setTimeline(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                timeline === option
+                timeline === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>

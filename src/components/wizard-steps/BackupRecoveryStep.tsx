@@ -14,10 +14,10 @@ export function BackupRecoveryStep() {
     wizardAnswers.backupRetention || ''
   );
   const [testedRestore, setTestedRestore] = useState(
-    wizardAnswers.testedRestore?.toString() || ''
+    wizardAnswers.testedRestoreRecently || ''
   );
   const [hasDisasterRecoveryPlan, setHasDisasterRecoveryPlan] = useState(
-    wizardAnswers.hasDisasterRecoveryPlan?.toString() || ''
+    wizardAnswers.hasDisasterRecoveryPlan || ''
   );
 
   const hasBackups = backupSolution === 'Yes-managed' || backupSolution === 'Yes-self';
@@ -25,10 +25,10 @@ export function BackupRecoveryStep() {
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      backupSolution: backupSolution || null,
-      backupRetention: hasBackups ? (backupRetention || null) : null,
-      testedRestore: hasBackups ? (testedRestore === 'true' || testedRestore === 'not-sure' ? testedRestore : null) : null,
-      hasDisasterRecoveryPlan: hasBackups ? (hasDisasterRecoveryPlan === 'true') : null,
+      backupSolution: (backupSolution as any) || null,
+      backupRetention: hasBackups ? ((backupRetention as any) || null) : null,
+      testedRestoreRecently: hasBackups ? (testedRestore as 'yes' | 'no' | 'not-sure' || null) : null,
+      hasDisasterRecoveryPlan: hasBackups ? (hasDisasterRecoveryPlan as 'yes' | 'no' | 'not-sure' || null) : null,
     });
     nextStep();
   };
