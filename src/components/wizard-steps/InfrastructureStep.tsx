@@ -11,7 +11,7 @@ export function InfrastructureStep() {
     wizardAnswers.infrastructureLocation || null
   );
   const [hasPhysicalServers, setHasPhysicalServers] = useState<import('@/types').YesNoNotSure | null>(
-    wizardAnswers.hasPhysicalServers ? 'yes' : (wizardAnswers.hasPhysicalServers === false ? 'no' : null)
+    wizardAnswers.hasPhysicalServers || null
   );
   const [oldestHardwareAge, setOldestHardwareAge] = useState<import('@/types').HardwareAge | null>(
     wizardAnswers.oldestHardwareAge || null
@@ -24,7 +24,7 @@ export function InfrastructureStep() {
     // Save answers to store
     updateWizardAnswers({
       infrastructureLocation: infrastructureLocation,
-      hasPhysicalServers: hasPhysicalServers === 'yes' ? true : (hasPhysicalServers === 'no' ? false : null),
+      hasPhysicalServers: hasPhysicalServers,
       oldestHardwareAge: oldestHardwareAge,
       hardwareConcerns: hardwareConcerns,
     });
@@ -77,15 +77,15 @@ export function InfrastructureStep() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {locationOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setInfrastructureLocation(option)}
+              key={option.value}
+              onClick={() => setInfrastructureLocation(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                infrastructureLocation === option
+                infrastructureLocation === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -100,18 +100,18 @@ export function InfrastructureStep() {
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Hardware lifecycle trigger
         </p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {yesNoOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setHasPhysicalServers(option === 'Yes' ? 'true' : 'false')}
+              key={option.value}
+              onClick={() => setHasPhysicalServers(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                hasPhysicalServers === (option === 'Yes' ? 'true' : 'false')
+                hasPhysicalServers === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -129,15 +129,15 @@ export function InfrastructureStep() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {hardwareAgeOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setOldestHardwareAge(option)}
+              key={option.value}
+              onClick={() => setOldestHardwareAge(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                oldestHardwareAge === option
+                oldestHardwareAge === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -153,23 +153,17 @@ export function InfrastructureStep() {
           Pain point flag
         </p>
         <div className="grid grid-cols-2 gap-3">
-          {yesNoOptions.map((option) => (
+          {hardwareConcernOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => {
-                setHardwareConcerns(option === 'Yes' ? 'true' : 'false');
-                // Clear hardware types if they select "No"
-                if (option === 'No') {
-                  setConcernedHardwareTypes([]);
-                }
-              }}
+              key={option.value.toString()}
+              onClick={() => setHardwareConcerns(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                hardwareConcerns === (option === 'Yes' ? 'true' : 'false')
+                hardwareConcerns === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>

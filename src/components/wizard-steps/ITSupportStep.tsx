@@ -7,18 +7,18 @@ import { Headphones, Users, DollarSign, ThumbsUp } from 'lucide-react';
 export function ITSupportStep() {
   const { wizardAnswers, updateWizardAnswers, nextStep, prevStep } = useAssessmentStore();
 
-  const [itManagement, setItManagement] = useState(wizardAnswers.itManagement || '');
+  const [itManagement, setItManagement] = useState<import('@/types').ITManagement | null>(wizardAnswers.itManagement || null);
   const [itStaffCount, setItStaffCount] = useState(wizardAnswers.itStaffCount?.toString() || '');
   const [monthlyITSpend, setMonthlyITSpend] = useState(wizardAnswers.monthlyITSpend?.toString() || '');
-  const [itSatisfaction, setItSatisfaction] = useState(wizardAnswers.itSatisfaction || '');
+  const [itSatisfaction, setItSatisfaction] = useState<import('@/types').Satisfaction | null>(wizardAnswers.itSatisfaction || null);
 
   const handleContinue = () => {
     // Save answers to store
     updateWizardAnswers({
-      itManagement: itManagement || null,
+      itManagement: itManagement,
       itStaffCount: itStaffCount ? parseInt(itStaffCount) : null,
       monthlyITSpend: monthlyITSpend ? parseFloat(monthlyITSpend) : null,
-      itSatisfaction: itSatisfaction || null,
+      itSatisfaction: itSatisfaction,
     });
     nextStep();
   };
@@ -29,23 +29,33 @@ export function ITSupportStep() {
     if (!itSatisfaction) return false;
 
     // If in-house or both, IT staff count is required
-    if ((itManagement === 'In-house' || itManagement === 'Both') && !itStaffCount) {
+    if ((itManagement === 'in-house' || itManagement === 'both') && !itStaffCount) {
       return false;
     }
 
     // If outsourced or both, monthly spend is required
-    if ((itManagement === 'Outsourced' || itManagement === 'Both') && !monthlyITSpend) {
+    if ((itManagement === 'outsourced' || itManagement === 'both') && !monthlyITSpend) {
       return false;
     }
 
     return true;
   };
 
-  const managementOptions = ['In-house', 'Outsourced', 'Both', 'Break-fix', 'None'];
-  const satisfactionOptions = ['Yes', 'Somewhat', 'No'];
+  const managementOptions: Array<{ label: string; value: import('@/types').ITManagement }> = [
+    { label: 'In-house', value: 'in-house' },
+    { label: 'Outsourced', value: 'outsourced' },
+    { label: 'Both', value: 'both' },
+    { label: 'Break-fix', value: 'break-fix' },
+    { label: 'None', value: 'none' },
+  ];
+  const satisfactionOptions: Array<{ label: string; value: import('@/types').Satisfaction }> = [
+    { label: 'Yes', value: 'yes' },
+    { label: 'Somewhat', value: 'somewhat' },
+    { label: 'No', value: 'no' },
+  ];
 
-  const showStaffCount = itManagement === 'In-house' || itManagement === 'Both';
-  const showMonthlySpend = itManagement === 'Outsourced' || itManagement === 'Both';
+  const showStaffCount = itManagement === 'in-house' || itManagement === 'both';
+  const showMonthlySpend = itManagement === 'outsourced' || itManagement === 'both';
 
   return (
     <div className="space-y-8">
@@ -61,24 +71,24 @@ export function ITSupportStep() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {managementOptions.map((option) => (
             <button
-              key={option}
+              key={option.value}
               onClick={() => {
-                setItManagement(option);
+                setItManagement(option.value);
                 // Reset conditional fields when changing management type
-                if (option !== 'In-house' && option !== 'Both') {
+                if (option.value !== 'in-house' && option.value !== 'both') {
                   setItStaffCount('');
                 }
-                if (option !== 'Outsourced' && option !== 'Both') {
+                if (option.value !== 'outsourced' && option.value !== 'both') {
                   setMonthlyITSpend('');
                 }
               }}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                itManagement === option
+                itManagement === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -142,15 +152,15 @@ export function ITSupportStep() {
         <div className="grid grid-cols-3 gap-3">
           {satisfactionOptions.map((option) => (
             <button
-              key={option}
-              onClick={() => setItSatisfaction(option)}
+              key={option.value}
+              onClick={() => setItSatisfaction(option.value)}
               className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                itSatisfaction === option
+                itSatisfaction === option.value
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-700'
               }`}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
