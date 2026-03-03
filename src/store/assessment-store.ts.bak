@@ -201,14 +201,14 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // ========================================
     // IT MANAGEMENT FLAGS
     // ========================================
-    if (wizardAnswers.itManagement === 'none') {
+    if (wizardAnswers.itManagement === 'None') {
       flags.push({
         severity: 'critical',
         category: 'IT Management',
         message: 'No Formal IT Management - No proactive monitoring, maintenance, or planning',
         source: 'itManagement',
       });
-    } else if (wizardAnswers.itManagement === 'break-fix') {
+    } else if (wizardAnswers.itManagement === 'Break-fix') {
       flags.push({
         severity: 'high',
         category: 'IT Management',
@@ -217,7 +217,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.itSatisfaction === 'no') {
+    if (wizardAnswers.itSatisfaction === 'No') {
       flags.push({
         severity: 'medium',
         category: 'IT Management',
@@ -229,28 +229,28 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // ========================================
     // HARDWARE & INFRASTRUCTURE FLAGS
     // ========================================
-    if (wizardAnswers.oldestHardwareAge === '7-plus') {
+    if (wizardAnswers.oldestHardwareAge === '7+ yrs') {
       flags.push({
         severity: 'critical',
         category: 'Hardware',
         message: 'Critical Hardware Age - Well past lifespan, high failure risk',
         source: 'oldestHardwareAge',
       });
-    } else if (wizardAnswers.oldestHardwareAge === '5-7') {
+    } else if (wizardAnswers.oldestHardwareAge === '5-7 yrs') {
       flags.push({
         severity: 'high',
         category: 'Hardware',
         message: 'Aging Hardware - Approaching end of life, warranties expired',
         source: 'oldestHardwareAge',
       });
-    } else if (wizardAnswers.oldestHardwareAge === '3-5') {
+    } else if (wizardAnswers.oldestHardwareAge === '3-5 yrs') {
       flags.push({
         severity: 'medium',
         category: 'Hardware',
         message: 'Mid-lifecycle Hardware - Still adequate, plan for replacement',
         source: 'oldestHardwareAge',
       });
-    } else if (wizardAnswers.oldestHardwareAge === 'not-sure') {
+    } else if (wizardAnswers.oldestHardwareAge === 'Not sure') {
       flags.push({
         severity: 'high',
         category: 'Hardware',
@@ -268,7 +268,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.infrastructureLocation === 'not-sure') {
+    if (wizardAnswers.infrastructureLocation === 'Not sure') {
       flags.push({
         severity: 'high',
         category: 'Infrastructure',
@@ -280,21 +280,21 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // ========================================
     // BACKUP & RECOVERY FLAGS
     // ========================================
-    if (wizardAnswers.backupSolution === 'no') {
+    if (wizardAnswers.backupSolution === 'No') {
       flags.push({
         severity: 'critical',
         category: 'Backup',
         message: 'No Backup Solution - Catastrophic data loss risk',
         source: 'backupSolution',
       });
-    } else if (wizardAnswers.backupSolution === 'not-sure') {
+    } else if (wizardAnswers.backupSolution === 'Not sure') {
       flags.push({
         severity: 'critical',
         category: 'Backup',
         message: 'Backup Status Unknown - Same as no backup',
         source: 'backupSolution',
       });
-    } else if (wizardAnswers.backupSolution === 'yes-self') {
+    } else if (wizardAnswers.backupSolution === 'Yes-self') {
       flags.push({
         severity: 'medium',
         category: 'Backup',
@@ -303,7 +303,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.backupRetention === 'under-30') {
+    if (wizardAnswers.backupRetention === 'Under 30 days') {
       flags.push({
         severity: 'medium',
         category: 'Backup',
@@ -312,7 +312,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.testedRestoreRecently === 'no') {
+    if (wizardAnswers.testedRestore === 'false') {
       flags.push({
         severity: 'critical',
         category: 'Backup',
@@ -321,7 +321,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.hasDisasterRecoveryPlan === 'no') {
+    if (wizardAnswers.hasDisasterRecoveryPlan === false) {
       flags.push({
         severity: 'high',
         category: 'Business Continuity',
@@ -333,14 +333,14 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // ========================================
     // SECURITY FLAGS
     // ========================================
-    if (wizardAnswers.hasEndpointProtection === 'no') {
+    if (wizardAnswers.hasEndpointProtection === 'No') {
       flags.push({
         severity: 'critical',
         category: 'Security',
         message: 'No Endpoint Protection - Vulnerable to malware/ransomware',
         source: 'hasEndpointProtection',
       });
-    } else if (wizardAnswers.hasEndpointProtection === 'partial') {
+    } else if (wizardAnswers.hasEndpointProtection === 'Partial') {
       flags.push({
         severity: 'high',
         category: 'Security',
@@ -349,7 +349,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.hasEmailSecurity === 'no') {
+    if (wizardAnswers.hasEmailSecurity === 'false' || wizardAnswers.hasEmailSecurity === 'no') {
       flags.push({
         severity: 'high',
         category: 'Security',
@@ -358,7 +358,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.requiresMFA === 'no') {
+    if (wizardAnswers.requiresMFA === 'false' || wizardAnswers.requiresMFA === 'no') {
       flags.push({
         severity: 'critical',
         category: 'Security',
@@ -367,14 +367,14 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
       });
     }
 
-    if (wizardAnswers.lastSecurityAssessment === 'never') {
+    if (wizardAnswers.lastSecurityAssessment === 'Never') {
       flags.push({
         severity: 'high',
         category: 'Security',
         message: 'No Security Assessment Conducted - Unknown vulnerabilities',
         source: 'lastSecurityAssessment',
       });
-    } else if (wizardAnswers.lastSecurityAssessment === '1-2-years') {
+    } else if (wizardAnswers.lastSecurityAssessment === '1-2 yrs') {
       flags.push({
         severity: 'medium',
         category: 'Security',
@@ -387,13 +387,13 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // COMPOUND RISK FLAGS
     // ========================================
     // High Downtime Exposure
-    const hasBackupRisk = wizardAnswers.backupSolution === 'no' || wizardAnswers.backupSolution === 'not-sure' || wizardAnswers.testedRestoreRecently === 'no';
-    const hasHardwareRisk = wizardAnswers.oldestHardwareAge === '7-plus' || wizardAnswers.oldestHardwareAge === '5-7';
-    const hasITRisk = wizardAnswers.itManagement === 'none' || wizardAnswers.itManagement === 'break-fix';
+    const hasBackupRisk = wizardAnswers.backupSolution === 'No' || wizardAnswers.backupSolution === 'Not sure' || wizardAnswers.testedRestore === 'false';
+    const hasHardwareRisk = wizardAnswers.oldestHardwareAge === '7+ yrs' || wizardAnswers.oldestHardwareAge === '5-7 yrs';
+    const hasITRisk = wizardAnswers.itManagement === 'None' || wizardAnswers.itManagement === 'Break-fix';
 
     if (
-      wizardAnswers.downtimeImpact === 'business-stops' &&
-      wizardAnswers.downtimeTolerance === 'zero' &&
+      wizardAnswers.downtimeImpact === 'Business stops' &&
+      wizardAnswers.downtimeTolerance === 'Zero' &&
       (hasBackupRisk || hasHardwareRisk || hasITRisk)
     ) {
       flags.push({
@@ -408,11 +408,11 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     // INDUSTRY-SPECIFIC COMPLIANCE FLAGS
     // ========================================
     // Healthcare (HIPAA)
-    if (wizardAnswers.industry === 'healthcare') {
+    if (wizardAnswers.industry === 'Healthcare') {
       const hasComplianceRisk =
-        wizardAnswers.hasEndpointProtection !== 'yes' ||
-       
-        wizardAnswers.backupSolution === 'no' || wizardAnswers.backupSolution === 'not-sure';
+        wizardAnswers.hasEndpointProtection !== 'Yes' ||
+        wizardAnswers.requiresMFA === 'false' || wizardAnswers.requiresMFA === 'no' ||
+        wizardAnswers.backupSolution === 'No' || wizardAnswers.backupSolution === 'Not sure';
 
       if (hasComplianceRisk) {
         flags.push({
@@ -425,11 +425,11 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     }
 
     // Legal / Finance
-    if (wizardAnswers.industry === 'legal' || wizardAnswers.industry === 'finance') {
+    if (wizardAnswers.industry === 'Legal' || wizardAnswers.industry === 'Finance') {
       const hasConfidentialityRisk =
-        wizardAnswers.hasEndpointProtection !== 'yes' ||
-       
-        wizardAnswers.hasEmailSecurity === 'no';
+        wizardAnswers.hasEndpointProtection !== 'Yes' ||
+        wizardAnswers.requiresMFA === 'false' || wizardAnswers.requiresMFA === 'no' ||
+        wizardAnswers.hasEmailSecurity === 'false' || wizardAnswers.hasEmailSecurity === 'no';
 
       if (hasConfidentialityRisk) {
         flags.push({
@@ -510,7 +510,7 @@ export const useAssessmentStore = create<AssessmentStore>((set, get) => ({
     if (
       wizardAnswers.decisionDrivers.includes('improve-security') ||
       wizardAnswers.hasEndpointProtection !== 'yes' ||
-     
+      wizardAnswers.requiresMFA === 'no' ||
       wizardAnswers.lastSecurityAssessment === 'never' ||
       wizardAnswers.lastSecurityAssessment === '1-2-years'
     ) {
