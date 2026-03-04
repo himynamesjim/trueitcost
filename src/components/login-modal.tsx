@@ -29,9 +29,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     try {
       const result = await signInWithMagicLink(email);
 
-      if (result.error) {
-        setError(result.error);
-      } else {
+      if (result.success) {
         setSuccess('Check your email for the magic link!');
         setEmail('');
       }
