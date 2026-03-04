@@ -1,0 +1,14 @@
+-- Add customer data fields to profiles table
+-- Run this SQL command in your Supabase SQL Editor
+
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS full_name TEXT,
+ADD COLUMN IF NOT EXISTS company TEXT,
+ADD COLUMN IF NOT EXISTS phone TEXT,
+ADD COLUMN IF NOT EXISTS address TEXT,
+ADD COLUMN IF NOT EXISTS city TEXT,
+ADD COLUMN IF NOT EXISTS state TEXT,
+ADD COLUMN IF NOT EXISTS zip_code TEXT,
+ADD COLUMN IF NOT EXISTS country TEXT,
+ADD COLUMN IF NOT EXISTS avatar_url TEXT,
+ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Calculator,
@@ -12,12 +13,31 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
+import { SocialProofToast } from '@/components/social-proof-toast';
+import { createClient } from '@/lib/supabase/client';
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Header */}
       <SiteHeader />
+
+      {/* Social Proof Toasts - Only show for non-logged-in users */}
+      {!isLoading && !isLoggedIn && <SocialProofToast />}
 
       {/* Scrollable Content */}
       <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
@@ -293,7 +313,7 @@ export default function Home() {
           href="https://www.techsolutions.cc"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s" }}
+          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s", cursor: "pointer" }}
           onMouseEnter={(e) => e.currentTarget.style.color = "#e2e8f0"}
           onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
         >

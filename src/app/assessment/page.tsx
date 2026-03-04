@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Save, Trash2, MessageSquare, Send, ArrowRight, Sparkles, Check } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
+import { PaywallModal } from '@/components/paywall-modal';
+import { useFeatureAccess } from '@/hooks/use-feature-access';
 
 interface SavedAssessment {
   id: string;
@@ -166,12 +168,14 @@ function MultiSelect({ options, selected, onChange }: any) {
 }
 
 export default function AssessmentPage() {
+  const { hasAccess, isLoading, isDesignLimitReached, isNotLoggedIn, designsCreated, designLimit } = useFeatureAccess('assessment');
   const [savedAssessments, setSavedAssessments] = useState<SavedAssessment[]>([]);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [apiResult, setApiResult] = useState<any>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Auto-save state
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -230,10 +234,12 @@ export default function AssessmentPage() {
 
   // Handlers
   const handleFieldChange = (fieldId: string, value: any) => {
+    if (!handleInteraction()) return;
     setFormData({ ...formData, [fieldId]: value });
   };
 
   const handleNext = () => {
+    if (!handleInteraction()) return;
     // Recalculate activeFields based on current formData
     let nextActiveFields: any[] = [];
     const currentAssessmentType = formData.assessment_type;
@@ -289,6 +295,26 @@ export default function AssessmentPage() {
 
       setApiResult(assessmentData);
       setShowResult(true);
+
+      // Auto-save the assessment
+      try {
+        const saveRes = await fetch('/api/save-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            design_type: 'assessment',
+            design_data: { assessmentType: formData.assessment_type, formData },
+            ai_response: assessmentData
+          })
+        });
+
+        if (saveRes.ok) {
+          const saveData = await saveRes.json();
+          console.log('Assessment saved:', saveData.title);
+        }
+      } catch (saveErr) {
+        console.error('Failed to auto-save assessment:', saveErr);
+      }
     } catch (error) {
       console.error('Error generating assessment:', error);
       // Fallback to placeholder
@@ -467,6 +493,35 @@ export default function AssessmentPage() {
     isDraggingRight.current = true;
     document.addEventListener('mousemove', handleMouseMoveRight as any);
     document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // For non-logged-in users, allow viewing but block interactions
+  // For logged-in users without access, show paywall immediately
+  const shouldBlockImmediately = !isLoading && !isNotLoggedIn && (!hasAccess || isDesignLimitReached);
+
+  if (shouldBlockImmediately) {
+    return (
+      <>
+        <SiteHeader />
+        <PaywallModal
+          isOpen={true}
+          builderName="MSP Assessment"
+          requiredTier="all_in"
+          reason={isDesignLimitReached ? 'design_limit' : 'trial_expired'}
+          designsCreated={designsCreated}
+          designLimit={designLimit}
+        />
+      </>
+    );
+  }
+
+  // Handler to check access before interactions
+  const handleInteraction = () => {
+    if (isNotLoggedIn) {
+      setShowPaywall(true);
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -1332,13 +1387,26 @@ export default function AssessmentPage() {
           href="https://www.techsolutions.cc"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s" }}
+          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s", cursor: "pointer" }}
           onMouseEnter={(e) => e.currentTarget.style.color = "#e2e8f0"}
           onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
         >
           InterPeak Technology Solutions
         </a>
       </footer>
+
+      {/* Paywall Modal for non-logged-in users */}
+      {showPaywall && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          builderName="MSP Assessment"
+          requiredTier="all_in"
+          reason="not_logged_in"
+          designsCreated={designsCreated}
+          designLimit={designLimit}
+        />
+      )}
     </div>
   );
 }

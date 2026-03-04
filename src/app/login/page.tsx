@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { SiteHeader } from '@/components/site-header';
 import Link from 'next/link';
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
-export default function LoginPage() {
+function LoginForm() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [formData, setFormData] = useState({
     email: '',
@@ -14,15 +15,24 @@ export default function LoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // TODO: Implement actual authentication
-    // This is a placeholder for Supabase or your auth solution
     try {
+      let recaptchaToken = '';
+
+      // Execute reCAPTCHA verification for register mode
+      if (mode === 'register' && executeRecaptcha) {
+        recaptchaToken = await executeRecaptcha('register');
+        console.log('reCAPTCHA token:', recaptchaToken);
+      }
+
+      // TODO: Implement actual authentication
+      // This is a placeholder for Supabase or your auth solution
       if (mode === 'login') {
         console.log('Login:', formData.email);
         // await supabase.auth.signInWithPassword({
@@ -38,6 +48,7 @@ export default function LoginPage() {
         //     data: {
         //       name: formData.name,
         //       company: formData.company,
+        //       recaptcha_token: recaptchaToken, // Send to backend for verification
         //     }
         //   }
         // });
@@ -278,5 +289,20 @@ export default function LoginPage() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl"></div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
+  if (!recaptchaSiteKey) {
+    console.warn('reCAPTCHA site key not found. reCAPTCHA will not be enabled.');
+    return <LoginForm />;
+  }
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={recaptchaSiteKey}>
+      <LoginForm />
+    </GoogleReCaptchaProvider>
   );
 }

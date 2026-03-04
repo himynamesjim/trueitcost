@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SiteHeader } from '@/components/site-header';
 import { CheckCircle2, Calendar, FileText, Mail, Minus, Plus, Download, Trash2, Calculator, Edit2, Save, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { PaywallModal } from '@/components/paywall-modal';
+import { useFeatureAccess } from '@/hooks/use-feature-access';
 
 interface LicenseItem {
   id: string;
@@ -15,9 +17,17 @@ interface LicenseItem {
 type BillingTerm = 'Monthly' | 'Annual' | 'Pre-Paid';
 
 export default function CoTermCalcPage() {
+  const { hasAccess, isLoading, isDesignLimitReached, isNotLoggedIn, designsCreated, designLimit } = useFeatureAccess('coterm-calc');
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[CoTerm] Auth State:', { isLoading, hasAccess, isNotLoggedIn, isDesignLimitReached });
+  }, [isLoading, hasAccess, isNotLoggedIn, isDesignLimitReached]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [leftWidth, setLeftWidth] = useState(280);
   const [rightWidth, setRightWidth] = useState(380);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
@@ -27,6 +37,13 @@ export default function CoTermCalcPage() {
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [generatedEmail, setGeneratedEmail] = useState<string>('');
   const [showAgreementEdit, setShowAgreementEdit] = useState(false);
+
+  // Auto-save and saved designs
+  const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
+  const [currentDesignId, setCurrentDesignId] = useState<string | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [editingDesignId, setEditingDesignId] = useState<string | null>(null);
+  const [editingDesignTitle, setEditingDesignTitle] = useState('');
 
   // Step 1: Agreement Info
   const [agreementStartDate, setAgreementStartDate] = useState('2025-04-02');
@@ -68,6 +85,7 @@ export default function CoTermCalcPage() {
   const monthsRemaining = calculateMonthsRemaining();
 
   const updateLicense = (id: string, field: keyof LicenseItem, value: any) => {
+    if (!handleInteraction()) return;
     setLicenses(licenses.map(l => l.id === id ? { ...l, [field]: value } : l));
   };
 
@@ -138,8 +156,184 @@ export default function CoTermCalcPage() {
 
   const results = calculateResults();
 
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+  // Fetch saved designs on mount
+  useEffect(() => {
+    const fetchSavedDesigns = async () => {
+      try {
+        const response = await fetch('/api/get-designs?design_type=coterm-calc');
+        if (response.ok) {
+          const data = await response.json();
+          setSavedDesigns(data.designs || []);
+        }
+      } catch (error) {
+        console.error('Error fetching saved designs:', error);
+      }
+    };
+
+    fetchSavedDesigns();
+  }, []);
+
+  // Auto-save effect
+  useEffect(() => {
+    // Only auto-save if we're past step 1 (clicked Next at least once)
+    // OR if user has modified the default agreement data
+    const hasModifiedData = agreementStartDate !== '2025-04-02' || agreementTermMonths !== 36;
+    const isPastStep1 = currentStep > 1;
+
+    if (!isPastStep1 && !hasModifiedData) {
+      console.log('Skipping auto-save: still on step 1 with default data');
+      return;
+    }
+
+    console.log('Auto-save triggered:', { currentStep, isPastStep1, hasModifiedData });
+
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Debounce auto-save by 2 seconds
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Calculate results for saving
+        const calcResults = calculateResults();
+        const calcMonthsRemaining = calculateMonthsRemaining();
+
+        if (currentDesignId) {
+          // Update existing design
+          const updateRes = await fetch('/api/update-design', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              design_id: currentDesignId,
+              design_data: {
+                agreementStartDate,
+                agreementTermMonths,
+                coTermStartDate,
+                useCalculatedMonths,
+                manualMonthsRemaining,
+                addExtension,
+                extensionMonths,
+                billingTerm,
+                licenses,
+                companyLogo,
+                currentStep
+              },
+              ai_response: {
+                totalCost: calcResults.updatedAnnualCost,
+                licenseCount: calcResults.totalLicenses,
+                monthsRemaining: calcMonthsRemaining,
+                coTermCost: calcResults.coTermCost
+              }
+            })
+          });
+
+          if (updateRes.ok) {
+            console.log('Co-Term calculation auto-saved');
+          }
+        } else {
+          // Create new design
+          const saveRes = await fetch('/api/save-design', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              design_type: 'coterm-calc',
+              design_data: {
+                agreementStartDate,
+                agreementTermMonths,
+                coTermStartDate,
+                useCalculatedMonths,
+                manualMonthsRemaining,
+                addExtension,
+                extensionMonths,
+                billingTerm,
+                licenses,
+                companyLogo,
+                currentStep
+              },
+              ai_response: {
+                totalCost: calcResults.updatedAnnualCost,
+                licenseCount: calcResults.totalLicenses,
+                monthsRemaining: calcMonthsRemaining,
+                coTermCost: calcResults.coTermCost
+              },
+              title: `Co-Term Calc (In Progress)`
+            })
+          });
+
+          if (saveRes.ok) {
+            const saveData = await saveRes.json();
+            setCurrentDesignId(saveData.design.id);
+            console.log('Co-Term calculation saved:', saveData.title);
+            // Refresh saved designs list
+            const response = await fetch('/api/get-designs?design_type=coterm-calc');
+            if (response.ok) {
+              const data = await response.json();
+              setSavedDesigns(data.designs || []);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to auto-save:', err);
+      }
+    }, 2000); // 2 second debounce
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [agreementStartDate, agreementTermMonths, coTermStartDate, useCalculatedMonths, manualMonthsRemaining, addExtension, extensionMonths, billingTerm, licenses, companyLogo, currentStep, currentDesignId]);
+
+  const nextStep = async () => {
+    if (!handleInteraction()) return;
+
+    const newStep = currentStep + 1;
+    if (currentStep < 4) setCurrentStep(newStep);
+
+    // Mark as complete when reaching results page (step 3)
+    if (newStep === 3 && licenses.length > 0 && currentDesignId) {
+      try {
+        // Calculate results for saving
+        const calcResults = calculateResults();
+        const calcMonthsRemaining = calculateMonthsRemaining();
+
+        const updateRes = await fetch('/api/update-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            design_id: currentDesignId,
+            design_data: {
+              agreementStartDate,
+              agreementTermMonths,
+              coTermStartDate,
+              useCalculatedMonths,
+              manualMonthsRemaining,
+              addExtension,
+              extensionMonths,
+              billingTerm,
+              licenses,
+              companyLogo,
+              currentStep: newStep,
+              isComplete: true
+            },
+            ai_response: {
+              totalCost: calcResults.updatedAnnualCost,
+              licenseCount: calcResults.totalLicenses,
+              monthsRemaining: calcMonthsRemaining,
+              coTermCost: calcResults.coTermCost
+            }
+          })
+        });
+
+        if (updateRes.ok) {
+          console.log('Co-Term calculation completed');
+        }
+      } catch (saveErr) {
+        console.error('Failed to complete co-term calculation:', saveErr);
+      }
+    }
   };
 
   const prevStep = () => {
@@ -387,9 +581,102 @@ export default function CoTermCalcPage() {
     }
   };
 
-  const handleSaveCalculation = () => {
-    // TODO: Implement saving to left panel
-    alert('Calculation saved! (Feature coming soon)');
+  const handleSaveCalculation = async () => {
+    try {
+      // Calculate results for saving
+      const calcResults = calculateResults();
+      const calcMonthsRemaining = calculateMonthsRemaining();
+
+      if (currentDesignId) {
+        // Update existing design and mark as complete
+        const updateRes = await fetch('/api/update-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            design_id: currentDesignId,
+            design_data: {
+              agreementStartDate,
+              agreementTermMonths,
+              coTermStartDate,
+              useCalculatedMonths,
+              manualMonthsRemaining,
+              addExtension,
+              extensionMonths,
+              billingTerm,
+              licenses,
+              companyLogo,
+              currentStep,
+              isComplete: true
+            },
+            ai_response: {
+              totalCost: calcResults.updatedAnnualCost,
+              licenseCount: calcResults.totalLicenses,
+              monthsRemaining: calcMonthsRemaining,
+              coTermCost: calcResults.coTermCost
+            }
+          })
+        });
+
+        if (updateRes.ok) {
+          alert('Calculation saved successfully!');
+          // Refresh saved designs list
+          const response = await fetch('/api/get-designs?design_type=coterm-calc');
+          if (response.ok) {
+            const data = await response.json();
+            setSavedDesigns(data.designs || []);
+          }
+        } else {
+          alert('Failed to save calculation. Please try again.');
+        }
+      } else {
+        // Create new design
+        const saveRes = await fetch('/api/save-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            design_type: 'coterm-calc',
+            design_data: {
+              agreementStartDate,
+              agreementTermMonths,
+              coTermStartDate,
+              useCalculatedMonths,
+              manualMonthsRemaining,
+              addExtension,
+              extensionMonths,
+              billingTerm,
+              licenses,
+              companyLogo,
+              currentStep,
+              isComplete: true
+            },
+            ai_response: {
+              totalCost: calcResults.updatedAnnualCost,
+              licenseCount: calcResults.totalLicenses,
+              monthsRemaining: calcMonthsRemaining,
+              coTermCost: calcResults.coTermCost
+            },
+            title: `Co-Term Calculation - ${new Date().toLocaleDateString()}`
+          })
+        });
+
+        if (saveRes.ok) {
+          const saveData = await saveRes.json();
+          setCurrentDesignId(saveData.design.id);
+          alert('Calculation saved successfully!');
+          // Refresh saved designs list
+          const response = await fetch('/api/get-designs?design_type=coterm-calc');
+          if (response.ok) {
+            const data = await response.json();
+            setSavedDesigns(data.designs || []);
+          }
+        } else {
+          alert('Failed to save calculation. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving calculation:', error);
+      alert('An error occurred while saving. Please try again.');
+    }
   };
 
   const handleStartOver = () => {
@@ -418,7 +705,65 @@ export default function CoTermCalcPage() {
     }
   };
 
+  const handleDeleteDesign = async (designId: string) => {
+    if (!confirm('Are you sure you want to delete this calculation?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/get-designs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ design_id: designId })
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setSavedDesigns(savedDesigns.filter(d => d.id !== designId));
+        // If we're deleting the current design, clear the ID
+        if (currentDesignId === designId) {
+          setCurrentDesignId(null);
+        }
+      } else {
+        alert('Failed to delete calculation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting calculation:', error);
+      alert('An error occurred while deleting. Please try again.');
+    }
+  };
+
+  const handleRenameDesign = async (designId: string) => {
+    if (!editingDesignTitle.trim()) {
+      alert('Please enter a name for the calculation.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/get-designs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ design_id: designId, title: editingDesignTitle.trim() })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSavedDesigns(savedDesigns.map(d =>
+          d.id === designId ? { ...d, title: editingDesignTitle.trim() } : d
+        ));
+        setEditingDesignId(null);
+        setEditingDesignTitle('');
+      } else {
+        alert('Failed to rename calculation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error renaming calculation:', error);
+      alert('An error occurred while renaming. Please try again.');
+    }
+  };
+
   const handleSendMessage = async () => {
+    if (!handleInteraction()) return;
     if (!chatInput.trim()) return;
 
     const userMessage = chatInput.trim();
@@ -595,6 +940,37 @@ export default function CoTermCalcPage() {
     </div>
   );
 
+  // For non-logged-in users, allow viewing but block interactions
+  // For logged-in users without access, show paywall immediately
+  const shouldBlockImmediately = !isLoading && !isNotLoggedIn && (!hasAccess || isDesignLimitReached);
+
+  if (shouldBlockImmediately) {
+    return (
+      <>
+        <SiteHeader />
+        <PaywallModal
+          isOpen={true}
+          builderName="Co-Term Calculator"
+          requiredTier="professional"
+          reason={isDesignLimitReached ? 'design_limit' : 'trial_expired'}
+          designsCreated={designsCreated}
+          designLimit={designLimit}
+        />
+      </>
+    );
+  }
+
+  // Handler to check access before interactions
+  const handleInteraction = () => {
+    console.log('[CoTerm handleInteraction] isNotLoggedIn:', isNotLoggedIn, 'showPaywall:', showPaywall);
+    if (isNotLoggedIn) {
+      console.log('[CoTerm handleInteraction] Showing paywall for non-logged-in user');
+      setShowPaywall(true);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="bg-slate-950 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <SiteHeader />
@@ -624,9 +1000,223 @@ export default function CoTermCalcPage() {
             </div>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-              Saved calculations will appear here.
-            </p>
+            {savedDesigns.length === 0 ? (
+              <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
+                Saved calculations will appear here.
+              </p>
+            ) : (
+              savedDesigns.map((design) => {
+                const designData = design.design_data || {};
+                const aiResponse = design.ai_response || {};
+                const isComplete = designData.isComplete !== false;
+
+                return (
+                  <div
+                    key={design.id}
+                    style={{
+                      padding: "12px",
+                      marginBottom: "8px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(168,85,247,0.2)",
+                      background: "rgba(168,85,247,0.05)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {/* Status Badge */}
+                    {!isComplete && (
+                      <div style={{ marginBottom: "6px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: "rgba(251,191,36,0.15)",
+                          color: "#fbbf24",
+                          fontSize: "9px",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}>
+                          In Progress
+                        </span>
+                      </div>
+                    )}
+                    {isComplete && (
+                      <div style={{ marginBottom: "6px" }}>
+                        <span style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: "rgba(34,197,94,0.15)",
+                          color: "#22c55e",
+                          fontSize: "9px",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}>
+                          Complete
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Title with Edit/Delete buttons */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                      {editingDesignId === design.id ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1 }}>
+                          <input
+                            type="text"
+                            value={editingDesignTitle}
+                            onChange={(e) => setEditingDesignTitle(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameDesign(design.id);
+                              } else if (e.key === 'Escape') {
+                                setEditingDesignId(null);
+                                setEditingDesignTitle('');
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: "4px 8px",
+                              fontSize: "13px",
+                              background: "#1e293b",
+                              border: "1px solid rgba(168,85,247,0.3)",
+                              borderRadius: "4px",
+                              color: "#e2e8f0",
+                              outline: "none",
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRenameDesign(design.id);
+                            }}
+                            style={{
+                              padding: "4px 8px",
+                              background: "#10b981",
+                              border: "none",
+                              borderRadius: "4px",
+                              color: "white",
+                              fontSize: "11px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingDesignId(null);
+                              setEditingDesignTitle('');
+                            }}
+                            style={{
+                              padding: "4px 8px",
+                              background: "#475569",
+                              border: "none",
+                              borderRadius: "4px",
+                              color: "white",
+                              fontSize: "11px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div
+                            onClick={() => {
+                              // Load the saved design
+                              setAgreementStartDate(designData.agreementStartDate || '2025-04-02');
+                              setAgreementTermMonths(designData.agreementTermMonths || 36);
+                              setCoTermStartDate(designData.coTermStartDate || new Date().toISOString().split('T')[0]);
+                              setUseCalculatedMonths(designData.useCalculatedMonths !== false);
+                              setManualMonthsRemaining(designData.manualMonthsRemaining || 12);
+                              setAddExtension(designData.addExtension || false);
+                              setExtensionMonths(designData.extensionMonths || 12);
+                              setBillingTerm(designData.billingTerm || 'Annual');
+                              setLicenses(designData.licenses || [{ id: '1', serviceDescription: '', quantity: 1, annualCost: 0, additionalLicenses: 0 }]);
+                              setCompanyLogo(designData.companyLogo || null);
+                              setCurrentStep(designData.currentStep || 1);
+                              setCurrentDesignId(design.id);
+                            }}
+                            style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", cursor: "pointer", flex: 1 }}
+                          >
+                            {design.title}
+                          </div>
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDesignId(design.id);
+                                setEditingDesignTitle(design.title);
+                              }}
+                              style={{
+                                padding: "4px",
+                                background: "transparent",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "#94a3b8",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                              title="Rename"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDesign(design.id);
+                              }}
+                              style={{
+                                padding: "4px",
+                                background: "transparent",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "#ef4444",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => {
+                        if (editingDesignId !== design.id) {
+                          // Load the saved design
+                          setAgreementStartDate(designData.agreementStartDate || '2025-04-02');
+                          setAgreementTermMonths(designData.agreementTermMonths || 36);
+                          setCoTermStartDate(designData.coTermStartDate || new Date().toISOString().split('T')[0]);
+                          setUseCalculatedMonths(designData.useCalculatedMonths !== false);
+                          setManualMonthsRemaining(designData.manualMonthsRemaining || 12);
+                          setAddExtension(designData.addExtension || false);
+                          setExtensionMonths(designData.extensionMonths || 12);
+                          setBillingTerm(designData.billingTerm || 'Annual');
+                          setLicenses(designData.licenses || [{ id: '1', serviceDescription: '', quantity: 1, annualCost: 0, additionalLicenses: 0 }]);
+                          setCompanyLogo(designData.companyLogo || null);
+                          setCurrentStep(designData.currentStep || 1);
+                          setCurrentDesignId(design.id);
+                        }
+                      }}
+                      style={{ cursor: editingDesignId === design.id ? 'default' : 'pointer' }}
+                    >
+                      <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>
+                        {aiResponse.licenseCount || 0} licenses • {aiResponse.monthsRemaining ? `${aiResponse.monthsRemaining.toFixed(1)} months` : 'N/A'}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#a78bfa", fontWeight: 500 }}>
+                        ${(aiResponse.coTermCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </aside>
 
@@ -705,7 +1295,10 @@ export default function CoTermCalcPage() {
                 <input
                   type="date"
                   value={agreementStartDate}
-                  onChange={(e) => setAgreementStartDate(e.target.value)}
+                  onChange={(e) => {
+                    if (!handleInteraction()) return;
+                    setAgreementStartDate(e.target.value);
+                  }}
                   className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -718,17 +1311,26 @@ export default function CoTermCalcPage() {
                   <input
                     type="number"
                     value={agreementTermMonths}
-                    onChange={(e) => setAgreementTermMonths(parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      if (!handleInteraction()) return;
+                      setAgreementTermMonths(parseInt(e.target.value) || 0);
+                    }}
                     className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
-                    onClick={() => setAgreementTermMonths(Math.max(1, agreementTermMonths - 1))}
+                    onClick={() => {
+                      if (!handleInteraction()) return;
+                      setAgreementTermMonths(Math.max(1, agreementTermMonths - 1));
+                    }}
                     className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setAgreementTermMonths(agreementTermMonths + 1)}
+                    onClick={() => {
+                      if (!handleInteraction()) return;
+                      setAgreementTermMonths(agreementTermMonths + 1);
+                    }}
                     className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
                   >
                     <Plus className="h-4 w-4" />
@@ -745,7 +1347,10 @@ export default function CoTermCalcPage() {
               <input
                 type="date"
                 value={coTermStartDate}
-                onChange={(e) => setCoTermStartDate(e.target.value)}
+                onChange={(e) => {
+                  if (!handleInteraction()) return;
+                  setCoTermStartDate(e.target.value);
+                }}
                 className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-slate-400 mt-2">
@@ -758,7 +1363,10 @@ export default function CoTermCalcPage() {
                 <input
                   type="checkbox"
                   checked={useCalculatedMonths}
-                  onChange={(e) => setUseCalculatedMonths(e.target.checked)}
+                  onChange={(e) => {
+                    if (!handleInteraction()) return;
+                    setUseCalculatedMonths(e.target.checked);
+                  }}
                   className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">Use calculated months remaining</span>
@@ -783,7 +1391,10 @@ export default function CoTermCalcPage() {
                   </label>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <button
-                      onClick={() => setManualMonthsRemaining(Math.max(1, manualMonthsRemaining - 1))}
+                      onClick={() => {
+                        if (!handleInteraction()) return;
+                        setManualMonthsRemaining(Math.max(1, manualMonthsRemaining - 1));
+                      }}
                       style={{
                         width: "36px",
                         height: "36px",
@@ -803,7 +1414,10 @@ export default function CoTermCalcPage() {
                     <input
                       type="number"
                       value={manualMonthsRemaining}
-                      onChange={(e) => setManualMonthsRemaining(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => {
+                        if (!handleInteraction()) return;
+                        setManualMonthsRemaining(Math.max(1, parseInt(e.target.value) || 1));
+                      }}
                       min="1"
                       style={{
                         width: "120px",
@@ -817,7 +1431,10 @@ export default function CoTermCalcPage() {
                       }}
                     />
                     <button
-                      onClick={() => setManualMonthsRemaining(manualMonthsRemaining + 1)}
+                      onClick={() => {
+                        if (!handleInteraction()) return;
+                        setManualMonthsRemaining(manualMonthsRemaining + 1);
+                      }}
                       style={{
                         width: "36px",
                         height: "36px",
@@ -847,7 +1464,10 @@ export default function CoTermCalcPage() {
                 <input
                   type="checkbox"
                   checked={addExtension}
-                  onChange={(e) => setAddExtension(e.target.checked)}
+                  onChange={(e) => {
+                    if (!handleInteraction()) return;
+                    setAddExtension(e.target.checked);
+                  }}
                   className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">Add Agreement Extension?</span>
@@ -867,7 +1487,10 @@ export default function CoTermCalcPage() {
                   </label>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <button
-                      onClick={() => setExtensionMonths(Math.max(1, extensionMonths - 1))}
+                      onClick={() => {
+                        if (!handleInteraction()) return;
+                        setExtensionMonths(Math.max(1, extensionMonths - 1));
+                      }}
                       style={{
                         width: "36px",
                         height: "36px",
@@ -887,7 +1510,10 @@ export default function CoTermCalcPage() {
                     <input
                       type="number"
                       value={extensionMonths}
-                      onChange={(e) => setExtensionMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => {
+                        if (!handleInteraction()) return;
+                        setExtensionMonths(Math.max(1, parseInt(e.target.value) || 1));
+                      }}
                       min="1"
                       style={{
                         width: "100px",
@@ -901,7 +1527,10 @@ export default function CoTermCalcPage() {
                       }}
                     />
                     <button
-                      onClick={() => setExtensionMonths(extensionMonths + 1)}
+                      onClick={() => {
+                        if (!handleInteraction()) return;
+                        setExtensionMonths(extensionMonths + 1);
+                      }}
                       style={{
                         width: "36px",
                         height: "36px",
@@ -1007,6 +1636,7 @@ export default function CoTermCalcPage() {
                   type="number"
                   value={numberOfLineItems}
                   onChange={(e) => {
+                    if (!handleInteraction()) return;
                     const num = parseInt(e.target.value) || 1;
                     setNumberOfLineItems(num);
                     // Adjust licenses array
@@ -1030,6 +1660,7 @@ export default function CoTermCalcPage() {
                 />
                 <button
                   onClick={() => {
+                    if (!handleInteraction()) return;
                     const num = Math.max(1, numberOfLineItems - 1);
                     setNumberOfLineItems(num);
                     setLicenses(licenses.slice(0, num));
@@ -1040,6 +1671,7 @@ export default function CoTermCalcPage() {
                 </button>
                 <button
                   onClick={() => {
+                    if (!handleInteraction()) return;
                     const num = numberOfLineItems + 1;
                     setNumberOfLineItems(num);
                     setLicenses([...licenses, {
@@ -1063,7 +1695,10 @@ export default function CoTermCalcPage() {
               </label>
               <select
                 value={billingTerm}
-                onChange={(e) => setBillingTerm(e.target.value as BillingTerm)}
+                onChange={(e) => {
+                  if (!handleInteraction()) return;
+                  setBillingTerm(e.target.value as BillingTerm);
+                }}
                 className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Annual">Annual</option>
@@ -1442,6 +2077,7 @@ export default function CoTermCalcPage() {
                                   type="text"
                                   value={license.serviceDescription}
                                   onChange={(e) => {
+                                    if (!handleInteraction()) return;
                                     setLicenses(licenses.map(l =>
                                       l.id === license.id
                                         ? { ...l, serviceDescription: e.target.value }
@@ -1460,7 +2096,10 @@ export default function CoTermCalcPage() {
                                 />
                               ) : (
                                 <div
-                                  onClick={() => setEditingServiceId(license.id)}
+                                  onClick={() => {
+                                    if (!handleInteraction()) return;
+                                    setEditingServiceId(license.id);
+                                  }}
                                   className="text-white cursor-pointer hover:text-blue-400 transition-colors px-2 py-1 min-h-[28px] flex items-start gap-2 group"
                                   title="Click to edit"
                                 >
@@ -1476,6 +2115,7 @@ export default function CoTermCalcPage() {
                                 type="number"
                                 value={license.quantity || ''}
                                 onChange={(e) => {
+                                  if (!handleInteraction()) return;
                                   setLicenses(licenses.map(l =>
                                     l.id === license.id
                                       ? { ...l, quantity: e.target.value === '' ? 0 : parseInt(e.target.value) }
@@ -1491,6 +2131,7 @@ export default function CoTermCalcPage() {
                                 type="number"
                                 value={license.annualCost || ''}
                                 onChange={(e) => {
+                                  if (!handleInteraction()) return;
                                   setLicenses(licenses.map(l =>
                                     l.id === license.id
                                       ? { ...l, annualCost: e.target.value === '' ? 0 : parseFloat(e.target.value) }
@@ -1506,6 +2147,7 @@ export default function CoTermCalcPage() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => {
+                                    if (!handleInteraction()) return;
                                     setLicenses(licenses.map(l =>
                                       l.id === license.id
                                         ? { ...l, additionalLicenses: Math.max(0, l.additionalLicenses - 1) }
@@ -1524,6 +2166,7 @@ export default function CoTermCalcPage() {
                                 <span className="text-blue-400 font-medium">+{license.additionalLicenses}</span>
                                 <button
                                   onClick={() => {
+                                    if (!handleInteraction()) return;
                                     setLicenses(licenses.map(l =>
                                       l.id === license.id
                                         ? { ...l, additionalLicenses: l.additionalLicenses + 1 }
@@ -1547,6 +2190,7 @@ export default function CoTermCalcPage() {
                             <td className="py-3 px-2">
                               <button
                                 onClick={() => {
+                                  if (!handleInteraction()) return;
                                   setLicenses(licenses.filter(l => l.id !== license.id));
                                 }}
                                 className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs transition-colors"
@@ -2060,13 +2704,26 @@ export default function CoTermCalcPage() {
           href="https://www.techsolutions.cc"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s" }}
+          style={{ color: "#94a3b8", textDecoration: "underline", textUnderlineOffset: "2px", transition: "color 0.2s", cursor: "pointer" }}
           onMouseEnter={(e) => e.currentTarget.style.color = "#e2e8f0"}
           onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
         >
           InterPeak Technology Solutions
         </a>
       </footer>
+
+      {/* Paywall Modal for non-logged-in users */}
+      {showPaywall && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          builderName="Co-Term Calculator"
+          requiredTier="professional"
+          reason="not_logged_in"
+          designsCreated={designsCreated}
+          designLimit={designLimit}
+        />
+      )}
     </div>
   );
 }
