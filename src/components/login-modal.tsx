@@ -46,14 +46,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setSuccess('');
 
     try {
-      const result = await signInWithGoogle();
-
-      if (result.error) {
-        setError(result.error);
-        setGoogleLoading(false);
-      }
+      await signInWithGoogle();
       // If successful, user will be redirected
     } catch (err: any) {
+      // Ignore NEXT_REDIRECT errors - they're expected when redirect() is called
+      if (err?.message?.includes('NEXT_REDIRECT')) {
+        return;
+      }
       setError(err.message || 'An error occurred');
       setGoogleLoading(false);
     }
