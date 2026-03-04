@@ -1,5 +1,6 @@
 import { updateSession } from '@/lib/supabase/middleware';
 
+// Middleware to handle Supabase session updates
 export async function middleware(request: any) {
   return await updateSession(request);
 }
