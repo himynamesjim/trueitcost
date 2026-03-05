@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SiteHeader } from '@/components/site-header';
-import { CheckCircle2, Calendar, FileText, Mail, Minus, Plus, Download, Trash2, Calculator, Edit2, Save, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Calendar, FileText, Mail, Minus, Plus, Download, Trash2, Calculator, Edit2, Save, RefreshCw, ChevronDown, ChevronUp, MessageSquare, Send, X } from 'lucide-react';
 import { PaywallModal } from '@/components/paywall-modal';
 import { useFeatureAccess } from '@/hooks/use-feature-access';
 
@@ -28,6 +28,22 @@ export default function CoTermCalcPage() {
   const [leftWidth, setLeftWidth] = useState(280);
   const [rightWidth, setRightWidth] = useState(380);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  // Mobile panel states
+  const [isMobileLeftPanelOpen, setIsMobileLeftPanelOpen] = useState(false);
+  const [isMobileRightPanelOpen, setIsMobileRightPanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
@@ -979,15 +995,83 @@ export default function CoTermCalcPage() {
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
         @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .nav-btn { transition: all 0.2s ease; }
         .nav-btn:hover { opacity: 0.8; }
       `}</style>
 
-      <div style={{ flex: 1, display: "flex", background: "#0c0f18", color: "#e2e8f0", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+      {/* Mobile Menu Buttons */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 100,
+          padding: '12px',
+          background: 'rgba(10, 13, 20, 0.95)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
+          <button
+            onClick={() => {
+              setIsMobileLeftPanelOpen(!isMobileLeftPanelOpen);
+              setIsMobileRightPanelOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: isMobileLeftPanelOpen ? 'linear-gradient(to right, rgb(16,185,129), rgb(5,150,105))' : 'rgba(255,255,255,0.05)',
+              color: 'white',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Save size={18} />
+            Saved
+          </button>
+          <button
+            onClick={() => {
+              setIsMobileRightPanelOpen(!isMobileRightPanelOpen);
+              setIsMobileLeftPanelOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: isMobileRightPanelOpen ? 'linear-gradient(to right, rgb(59,130,246), rgb(37,99,235))' : 'rgba(255,255,255,0.05)',
+              color: 'white',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <MessageSquare size={18} />
+            AI Chat
+          </button>
+        </div>
+      )}
+
+      <div style={{ flex: 1, display: "flex", background: "#0c0f18", color: "#e2e8f0", fontFamily: "'Outfit', sans-serif", overflow: "hidden", position: 'relative' }}>
         {/* Left Panel - Saved Calculations */}
         <aside style={{
-          width: `${leftWidth}px`,
-          borderRight: "1px solid rgba(255,255,255,0.06)",
+          width: isMobile ? '0px' : `${leftWidth}px`,
+          borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
           background: "#0a0d14",
@@ -1232,7 +1316,7 @@ export default function CoTermCalcPage() {
         />
 
         {/* Main Content - Wizard */}
-        <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "40px 20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+        <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: isMobile ? "20px 16px" : "40px 20px", paddingBottom: isMobile ? "120px" : "40px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
           {/* Ambient background */}
           <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
 
@@ -1287,7 +1371,7 @@ export default function CoTermCalcPage() {
           <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
             <h2 className="text-2xl font-bold text-white mb-6">Agreement Information</h2>
 
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Agreement Start Date:
@@ -1322,7 +1406,7 @@ export default function CoTermCalcPage() {
                       if (!handleInteraction()) return;
                       setAgreementTermMonths(Math.max(1, agreementTermMonths - 1));
                     }}
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
@@ -1331,7 +1415,7 @@ export default function CoTermCalcPage() {
                       if (!handleInteraction()) return;
                       setAgreementTermMonths(agreementTermMonths + 1);
                     }}
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -1565,7 +1649,7 @@ export default function CoTermCalcPage() {
             {/* Agreement Summary */}
             <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
               <h3 className="text-blue-300 font-semibold mb-3">Agreement Information Summary</h3>
-              <div className="grid grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-slate-400">Agreement Start Date:</div>
                   <div className="text-white font-medium">{agreementStartDate}</div>
@@ -1596,7 +1680,7 @@ export default function CoTermCalcPage() {
             </div>
 
             {/* Instructions */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-slate-900 rounded-lg p-4">
                 <h4 className="flex items-center gap-2 text-slate-300 font-semibold mb-3">
                   <FileText className="h-5 w-5" />
@@ -1712,7 +1796,7 @@ export default function CoTermCalcPage() {
               <div key={license.id} className="mb-6 bg-slate-900 rounded-lg p-4 border border-slate-700">
                 <h4 className="text-white font-semibold mb-4">Item {index + 1}</h4>
 
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm text-slate-400 mb-2">Service Description</label>
                     <input
@@ -1815,7 +1899,7 @@ export default function CoTermCalcPage() {
 
               {showAgreementEdit && (
                 <div className="p-6 border-t border-slate-700 bg-slate-900/50">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-2">
                         Agreement Start Date:
@@ -1841,13 +1925,13 @@ export default function CoTermCalcPage() {
                         />
                         <button
                           onClick={() => setAgreementTermMonths(Math.max(1, agreementTermMonths - 1))}
-                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setAgreementTermMonths(agreementTermMonths + 1)}
-                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -2232,7 +2316,7 @@ export default function CoTermCalcPage() {
             </div>
 
             {/* License Summary & Cost Breakdown */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                 <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                   <span className="text-purple-400">👥</span>
@@ -2491,7 +2575,7 @@ export default function CoTermCalcPage() {
               </div>
 
               {/* PDF and Email Buttons - Same Line */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={generatePDF}
                   disabled={isGeneratingPDF}
@@ -2602,8 +2686,8 @@ export default function CoTermCalcPage() {
 
         {/* Right Panel - AI Assistant */}
         <aside style={{
-          width: `${rightWidth}px`,
-          borderLeft: "1px solid rgba(255,255,255,0.06)",
+          width: isMobile ? '0px' : `${rightWidth}px`,
+          borderLeft: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
           background: "#0a0d14",
@@ -2695,6 +2779,250 @@ export default function CoTermCalcPage() {
             </div>
           </div>
         </aside>
+
+        {/* Mobile Left Panel Overlay - Saved Designs */}
+        {isMobile && isMobileLeftPanelOpen && (
+          <>
+            <div
+              onClick={() => setIsMobileLeftPanelOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                zIndex: 200,
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+            <aside style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: '85%',
+              maxWidth: '350px',
+              background: '#0a0d14',
+              zIndex: 201,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+              animation: 'slideInLeft 0.3s ease-out',
+            }}>
+              <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🧮</span>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0', margin: 0 }}>
+                    Saved Calculations
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsMobileLeftPanelOpen(false)}
+                  style={{
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#e2e8f0',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+                {savedDesigns.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
+                    <p style={{ fontSize: '14px' }}>No saved calculations yet</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {savedDesigns.map((design) => (
+                      <div
+                        key={design.id}
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '12px',
+                          padding: '16px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                        onClick={() => {
+                          handleLoadDesign(design.id);
+                          setIsMobileLeftPanelOpen(false);
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e8f0', marginBottom: '4px' }}>
+                              {design.title}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>
+                              {new Date(design.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDesign(design.id);
+                            }}
+                            style={{
+                              padding: '6px',
+                              background: 'transparent',
+                              color: '#ef4444',
+                              border: 'none',
+                              cursor: 'pointer',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              transition: 'background 0.2s',
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
+          </>
+        )}
+
+        {/* Mobile Right Panel Overlay - AI Chat */}
+        {isMobile && isMobileRightPanelOpen && (
+          <>
+            <div
+              onClick={() => setIsMobileRightPanelOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                zIndex: 200,
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+            <aside style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: '85%',
+              maxWidth: '350px',
+              background: '#0a0d14',
+              zIndex: 201,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '-4px 0 24px rgba(0,0,0,0.3)',
+              animation: 'slideInRight 0.3s ease-out',
+            }}>
+              <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare size={20} style={{ color: '#3b82f6' }} />
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0', margin: 0 }}>
+                    AI Assistant
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsMobileRightPanelOpen(false)}
+                  style={{
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#e2e8f0',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+                {chatMessages.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
+                    <MessageSquare size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                    <p style={{ fontSize: '14px', marginBottom: '8px' }}>No messages yet</p>
+                    <p style={{ fontSize: '12px' }}>Ask questions about co-term calculations</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {chatMessages.map((msg, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          background: msg.role === 'user' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                          border: msg.role === 'user' ? '1px solid rgba(59,130,246,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          color: '#e2e8f0',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', fontWeight: '500' }}>
+                          {msg.role === 'user' ? 'You' : 'AI Assistant'}
+                        </div>
+                        {msg.content}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isLoadingChat && (
+                  <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                    Thinking...
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                    placeholder="Ask a question..."
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: '#e2e8f0',
+                      fontSize: '14px',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleSendChat}
+                    disabled={!chatInput.trim() || isLoadingChat}
+                    style={{
+                      padding: '12px 18px',
+                      background: chatInput.trim() && !isLoadingChat ? 'linear-gradient(to right, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
+                      color: 'white',
+                      borderRadius: '10px',
+                      border: 'none',
+                      cursor: chatInput.trim() && !isLoadingChat ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </>
+        )}
       </div>
 
       {/* Footer */}

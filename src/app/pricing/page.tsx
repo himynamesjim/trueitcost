@@ -127,18 +127,18 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
       <SiteHeader />
 
-      <main className="container mx-auto px-4 py-16">
+      <main className="container mx-auto px-4 py-8 sm:py-12 md:py-16">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
             Simple, Transparent Pricing
           </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
             Choose the plan that fits your needs. All plans include a 7-day free trial.
           </p>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
             <span className={`text-sm font-medium transition-colors ${billingCycle === 'monthly' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
               Monthly
             </span>
@@ -166,91 +166,93 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl border-2 p-8 transition-all hover:scale-105 ${
+              className={`relative rounded-2xl border-2 p-6 sm:p-8 transition-all hover:scale-105 flex flex-col ${
                 plan.popular
                   ? 'border-emerald-500 bg-white dark:bg-slate-800 shadow-2xl shadow-emerald-500/20 dark:shadow-emerald-500/10'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xl'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold shadow-lg">
                     Most Popular
                   </span>
                 </div>
               )}
 
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
-                  {plan.description}
-                </p>
-                <div className="flex flex-col items-center mb-2">
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-bold text-slate-900 dark:text-white">
-                      {getDisplayPrice(plan)}
-                    </span>
-                    <span className="text-slate-600 dark:text-slate-400">
-                      {getPeriod(plan)}
-                    </span>
+              <div className="flex-grow">
+                <div className="text-center mb-4 sm:mb-6">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    {plan.name}
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mb-4 sm:mb-6">
+                    {plan.description}
+                  </p>
+                  <div className="flex flex-col items-center mb-2">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white">
+                        {getDisplayPrice(plan)}
+                      </span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {getPeriod(plan)}
+                      </span>
+                    </div>
+                    {!('isTrial' in plan && plan.isTrial) && billingCycle === 'annual' && (
+                      <div className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Save ${getSavings(plan)} per year
+                      </div>
+                    )}
+                    {!('isTrial' in plan && plan.isTrial) && billingCycle === 'monthly' && (
+                      <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        or ${plan.annualPrice.toFixed(2)}/year (save 20%)
+                      </div>
+                    )}
                   </div>
-                  {!('isTrial' in plan && plan.isTrial) && billingCycle === 'annual' && (
-                    <div className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
-                      Save ${getSavings(plan)} per year
-                    </div>
-                  )}
-                  {!('isTrial' in plan && plan.isTrial) && billingCycle === 'monthly' && (
-                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      or ${plan.annualPrice.toFixed(2)}/year (save 20%)
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              {/* Builders Section - Highlighted */}
-              <div className={`mb-6 p-4 rounded-xl ${plan.badgeColor} border-2 border-current/20`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Wrench className="h-5 w-5" />
-                  <h4 className="font-bold text-sm uppercase tracking-wide">Included Tools</h4>
+                {/* Builders Section - Highlighted */}
+                <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl ${plan.badgeColor} border-2 border-current/20`}>
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <Wrench className="h-4 sm:h-5 w-4 sm:w-5" />
+                    <h4 className="font-bold text-xs sm:text-sm uppercase tracking-wide">Included Tools</h4>
+                  </div>
+                  <ul className="space-y-1.5 sm:space-y-2">
+                    {plan.builders.map((builder) => (
+                      <li key={builder} className="flex items-start gap-2">
+                        <Sparkles className="h-3.5 sm:h-4 w-3.5 sm:w-4 flex-shrink-0 mt-1" />
+                        <span className="text-xs sm:text-sm font-semibold leading-tight">
+                          {builder}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {plan.builders.map((builder) => (
-                    <li key={builder} className="flex items-start gap-2">
-                      <Sparkles className="h-4 w-4 flex-shrink-0 mt-1" />
-                      <span className="text-sm font-semibold leading-tight">
-                        {builder}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
 
-              {/* Features Section */}
-              <div className="mb-8">
-                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
-                  Plus All These Features
-                </h4>
-                <ul className="space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-700 dark:text-slate-300 text-sm">
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                {/* Features Section */}
+                <div className="mb-6 sm:mb-8">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 sm:mb-3">
+                    Plus All These Features
+                  </h4>
+                  <ul className="space-y-2 sm:space-y-3">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 sm:gap-3">
+                        <Check className="h-4 sm:h-5 w-4 sm:w-5 text-emerald-600 dark:text-emerald-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
 
               <button
                 onClick={() => router.push('/signup')}
-                className={`w-full py-3.5 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg ${
+                className={`w-full py-3 sm:py-3.5 rounded-xl font-semibold text-sm sm:text-base transition-all shadow-md hover:shadow-lg ${
                   plan.popular
                     ? `bg-gradient-to-r ${plan.gradient} text-white hover:shadow-emerald-500/30`
                     : `bg-gradient-to-r ${plan.gradient} text-white hover:shadow-lg`
@@ -263,14 +265,14 @@ export default function PricingPage() {
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-24 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white text-center mb-12">
+        <div className="mt-12 sm:mt-16 md:mt-24 max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white text-center mb-8 sm:mb-12">
             Frequently Asked Questions
           </h2>
 
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-2">
                 Can I switch plans?
               </h3>
               <p className="text-slate-600 dark:text-slate-400">

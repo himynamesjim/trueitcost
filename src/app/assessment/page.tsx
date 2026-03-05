@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, Trash2, MessageSquare, Send, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { Save, Trash2, MessageSquare, Send, ArrowRight, Sparkles, Check, Menu, X } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { PaywallModal } from '@/components/paywall-modal';
 import { useFeatureAccess } from '@/hooks/use-feature-access';
@@ -191,6 +191,22 @@ export default function AssessmentPage() {
   const [rightWidth, setRightWidth] = useState(320);
   const isDraggingLeft = useRef(false);
   const isDraggingRight = useRef(false);
+
+  // Mobile panel states
+  const [isMobileLeftPanelOpen, setIsMobileLeftPanelOpen] = useState(false);
+  const [isMobileRightPanelOpen, setIsMobileRightPanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Determine which field set to use based on assessment type
   const assessmentType = formData.assessment_type;
@@ -539,6 +555,72 @@ export default function AssessmentPage() {
         .nav-btn:hover { opacity: 0.8; }
       `}</style>
 
+      {/* Mobile Menu Buttons */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '12px',
+          zIndex: 100,
+          padding: '12px',
+          background: 'rgba(10, 13, 20, 0.95)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}>
+          <button
+            onClick={() => {
+              setIsMobileLeftPanelOpen(!isMobileLeftPanelOpen);
+              setIsMobileRightPanelOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: isMobileLeftPanelOpen ? 'linear-gradient(to right, rgb(16,185,129), rgb(5,150,105))' : 'rgba(255,255,255,0.05)',
+              color: 'white',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Save size={18} />
+            Saved
+          </button>
+          <button
+            onClick={() => {
+              setIsMobileRightPanelOpen(!isMobileRightPanelOpen);
+              setIsMobileLeftPanelOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              background: isMobileRightPanelOpen ? 'linear-gradient(to right, rgb(59,130,246), rgb(37,99,235))' : 'rgba(255,255,255,0.05)',
+              color: 'white',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <MessageSquare size={18} />
+            AI Chat
+          </button>
+        </div>
+      )}
+
       <div style={{
         flex: 1,
         background: "#0c0f18",
@@ -546,11 +628,12 @@ export default function AssessmentPage() {
         fontFamily: "'Outfit', sans-serif",
         display: "flex",
         overflow: "hidden",
+        position: 'relative',
       }}>
         {/* Left Panel - Saved Assessments */}
         <aside style={{
-          width: `${leftWidth}px`,
-          borderRight: "1px solid rgba(255,255,255,0.06)",
+          width: isMobile ? '0px' : `${leftWidth}px`,
+          borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
           background: "#0a0d14",
@@ -635,18 +718,20 @@ export default function AssessmentPage() {
         </aside>
 
         {/* Resize Handle - Left */}
-        <div
-          onMouseDown={handleResizeLeft}
-          style={{
-            width: "4px",
-            cursor: "col-resize",
-            background: "transparent",
-            position: "relative",
-          }}
-        />
+        {!isMobile && (
+          <div
+            onMouseDown={handleResizeLeft}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+            }}
+          />
+        )}
 
         {/* Main Content - Assessment Wizard */}
-        <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "40px 20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+        <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: isMobile ? "20px 16px 100px 16px" : "40px 20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
           {/* Ambient background */}
           <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
 
@@ -1233,20 +1318,22 @@ export default function AssessmentPage() {
         </main>
 
         {/* Resize Handle - Right */}
-        <div
-          onMouseDown={handleResizeRight}
-          style={{
-            width: "4px",
-            cursor: "col-resize",
-            background: "transparent",
-            position: "relative",
-          }}
-        />
+        {!isMobile && (
+          <div
+            onMouseDown={handleResizeRight}
+            style={{
+              width: "4px",
+              cursor: "col-resize",
+              background: "transparent",
+              position: "relative",
+            }}
+          />
+        )}
 
         {/* Right Panel - Chat */}
         <aside style={{
-          width: `${rightWidth}px`,
-          borderLeft: "1px solid rgba(255,255,255,0.06)",
+          width: isMobile ? '0px' : `${rightWidth}px`,
+          borderLeft: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
           background: "#0a0d14",
@@ -1378,7 +1465,280 @@ export default function AssessmentPage() {
             </div>
           </div>
         </aside>
+
+        {/* Mobile Left Panel Overlay */}
+        {isMobile && isMobileLeftPanelOpen && (
+          <>
+            <div
+              onClick={() => setIsMobileLeftPanelOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                zIndex: 200,
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+            <aside style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: '85%',
+              maxWidth: '350px',
+              background: '#0a0d14',
+              zIndex: 201,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+              animation: 'slideInLeft 0.3s ease-out',
+            }}>
+              <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0' }}>
+                  Saved Assessments
+                </h2>
+                <button
+                  onClick={() => setIsMobileLeftPanelOpen(false)}
+                  style={{
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#e2e8f0',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ padding: '16px' }}>
+                <button
+                  onClick={handleSaveAssessment}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(to right, rgb(16,185,129), rgb(5,150,105))',
+                    color: 'white',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    border: 'none',
+                  }}
+                >
+                  <Save size={16} />
+                  Save Current
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
+                {savedAssessments.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
+                    <p style={{ fontSize: '14px' }}>No saved assessments yet</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {savedAssessments.map((assessment) => (
+                      <div
+                        key={assessment.id}
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          borderRadius: '10px',
+                          padding: '14px',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          handleLoadAssessment(assessment);
+                          setIsMobileLeftPanelOpen(false);
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#e2e8f0', flex: 1 }}>{assessment.title}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAssessment(assessment.id);
+                            }}
+                            style={{
+                              padding: '4px',
+                              background: 'transparent',
+                              color: '#ef4444',
+                              border: 'none',
+                              cursor: 'pointer',
+                              borderRadius: '4px',
+                              display: 'flex',
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>{assessment.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
+          </>
+        )}
+
+        {/* Mobile Right Panel Overlay */}
+        {isMobile && isMobileRightPanelOpen && (
+          <>
+            <div
+              onClick={() => setIsMobileRightPanelOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                zIndex: 200,
+                backdropFilter: 'blur(4px)',
+              }}
+            />
+            <aside style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: '85%',
+              maxWidth: '350px',
+              background: '#0a0d14',
+              zIndex: 201,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '-4px 0 24px rgba(0,0,0,0.3)',
+              animation: 'slideInRight 0.3s ease-out',
+            }}>
+              <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare size={20} style={{ color: '#3b82f6' }} />
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0' }}>
+                    AI Chat
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsMobileRightPanelOpen(false)}
+                  style={{
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#e2e8f0',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {chatMessages.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
+                    <MessageSquare size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                    <p style={{ fontSize: '14px', marginBottom: '8px' }}>No messages yet</p>
+                    <p style={{ fontSize: '12px' }}>Ask questions about your assessment results</p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        background: msg.role === 'user' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                        border: msg.role === 'user' ? '1px solid rgba(59,130,246,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        color: '#e2e8f0',
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', fontWeight: '500' }}>
+                        {msg.role === 'user' ? 'You' : 'AI Assistant'}
+                      </div>
+                      {msg.content}
+                    </div>
+                  ))
+                )}
+                {isSendingChat && (
+                  <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                    Thinking...
+                  </div>
+                )}
+              </div>
+              <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                    placeholder="Ask a question..."
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '10px',
+                      color: '#e2e8f0',
+                      fontSize: '14px',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleSendChat}
+                    disabled={!chatInput.trim() || isSendingChat}
+                    style={{
+                      padding: '12px 18px',
+                      background: chatInput.trim() && !isSendingChat ? 'linear-gradient(to right, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
+                      color: 'white',
+                      borderRadius: '10px',
+                      border: 'none',
+                      cursor: chatInput.trim() && !isSendingChat ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </>
+        )}
       </div>
+
+      <style>{`
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+      `}</style>
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px 0", fontSize: "11px", color: "#64748b", textAlign: "center", background: "#0c0f18" }}>

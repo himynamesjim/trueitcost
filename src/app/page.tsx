@@ -43,18 +43,18 @@ export default function Home() {
       <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-slate-900 to-slate-800 text-white py-20 px-4">
+      <section className="bg-gradient-to-b from-slate-900 to-slate-800 text-white py-12 sm:py-16 md:py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
             Make Smarter IT Decisions with{' '}
             <span className="text-emerald-400">TrueITCost</span>
           </h1>
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
             Your AI-powered toolkit for evaluating MSPs, architecting IT solutions, and managing software licensing. Get clear answers to complex IT decisions in minutes.
           </p>
           <a
             href="#tools"
-            className="inline-flex items-center gap-2 bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/25"
+            className="inline-flex items-center gap-2 bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/25"
           >
             Get Started
             <ArrowRight className="h-5 w-5" />
@@ -64,18 +64,18 @@ export default function Home() {
       </section>
 
       {/* What is TrueITCost */}
-      <section className="py-16 px-4 bg-white dark:bg-slate-900">
+      <section className="py-12 sm:py-16 px-4 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-4 sm:mb-6">
             What is TrueITCost?
           </h2>
-          <p className="text-lg text-center text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg text-center text-slate-600 dark:text-slate-300 mb-8 sm:mb-12 max-w-3xl mx-auto">
             TrueITCost is your AI-powered decision-making platform for navigating complex IT choices.
             Whether you&apos;re evaluating managed service providers, designing IT infrastructure, or
             optimizing software licensing, we provide data-driven insights to help you make confident decisions.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
             <div className="bg-emerald-50 dark:bg-emerald-950 rounded-xl p-6 border border-emerald-100 dark:border-emerald-900">
               <div className="text-emerald-600 dark:text-emerald-400 mb-4">
                 <CheckCircle2 className="h-8 w-8" />
@@ -110,48 +110,48 @@ export default function Home() {
       </section>
 
       {/* Our Tools */}
-      <section id="tools" className="py-16 px-4 bg-slate-50 dark:bg-slate-800">
+      <section id="tools" className="py-12 sm:py-16 px-4 bg-slate-50 dark:bg-slate-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-4">
             Our Tools
           </h2>
-          <p className="text-center text-slate-600 dark:text-slate-300 mb-12 max-w-2xl mx-auto">
+          <p className="text-center text-slate-600 dark:text-slate-300 mb-8 sm:mb-12 max-w-2xl mx-auto">
             Three powerful tools designed to help you make informed IT decisions with confidence.
           </p>
 
-          <div className="grid md:grid-cols-1 gap-8 max-w-4xl mx-auto">
+          <div className="grid gap-6 sm:gap-8 max-w-4xl mx-auto">
             {/* MSP Assessment */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border-2 border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="text-emerald-600 dark:text-emerald-400 flex-shrink-0">
                   <TrendingUp className="h-10 w-10" />
                 </div>
                 <div className="flex-grow">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">MSP Assessment</h3>
-                  <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">MSP Assessment</h3>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
                     Not sure if your business needs a Managed Service Provider? This tool helps you evaluate whether partnering with an MSP makes financial sense for your organization.
                   </p>
                   <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                       Compare total cost of ownership: MSP vs. in-house IT staff
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                       Understand hidden costs like downtime risk, security gaps, and opportunity costs
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                       Get a detailed ROI projection tailored to your business size and industry
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
                       Receive an unbiased recommendation based on your specific needs
                     </li>
                   </ul>
                   <Link
                     href="/assessment"
-                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-emerald-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                   >
                     Start MSP Assessment
                     <ArrowRight className="h-5 w-5" />
@@ -161,37 +161,37 @@ export default function Home() {
             </div>
 
             {/* AI Solutions Architect */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border-2 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="text-blue-600 dark:text-blue-400 flex-shrink-0">
                   <Server className="h-10 w-10" />
                 </div>
                 <div className="flex-grow">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">AI Solutions Architect</h3>
-                  <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">AI Solutions Architect</h3>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
                     Get expert-level IT infrastructure recommendations powered by AI. Whether you&apos;re planning a cloud migration, designing a new network, or choosing between technology stacks, our AI architect provides tailored solutions.
                   </p>
                   <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                       Get personalized infrastructure designs based on your business requirements
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                       Compare cloud vs. on-premise solutions with detailed cost breakdowns
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                       Receive vendor-neutral recommendations for hardware, software, and services
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
                       Get implementation roadmaps with timelines and resource requirements
                     </li>
                   </ul>
                   <Link
                     href="/ai-solutions"
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                   >
                     Try AI Solutions Architect
                     <ArrowRight className="h-5 w-5" />
@@ -201,37 +201,37 @@ export default function Home() {
             </div>
 
             {/* Co-Term Calc */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 border-2 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="text-purple-600 dark:text-purple-400 flex-shrink-0">
                   <Calculator className="h-10 w-10" />
                 </div>
                 <div className="flex-grow">
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Co-Term Calc</h3>
-                  <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">Co-Term Calc</h3>
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
                     Simplify software license management and renewals. Calculate co-termination dates, prorate costs, and align all your software subscriptions to a single renewal date for easier budgeting and vendor management.
                   </p>
                   <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                       Calculate exact prorated costs when aligning subscription renewal dates
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                       Consolidate multiple software renewals into a single annual review
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                       Identify opportunities to save money by optimizing license counts
                     </li>
-                    <li className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
                       <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                       Export detailed reports for finance and procurement teams
                     </li>
                   </ul>
                   <Link
                     href="/coterm-calc"
-                    className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                    className="inline-flex items-center gap-2 bg-purple-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-purple-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                   >
                     Open Co-Term Calculator
                     <ArrowRight className="h-5 w-5" />
@@ -244,13 +244,13 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 px-4 bg-white dark:bg-slate-900">
+      <section className="py-12 sm:py-16 px-4 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-8 sm:mb-12">
             How It Works
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
             <Step
               number={1}
               title="Choose Your Tool"
@@ -271,32 +271,32 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-slate-900 dark:bg-slate-950">
+      <section className="py-12 sm:py-16 px-4 bg-slate-900 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
             Ready to make smarter IT decisions?
           </h2>
-          <p className="text-slate-400 dark:text-slate-500 mb-8">
+          <p className="text-sm sm:text-base text-slate-400 dark:text-slate-500 mb-6 sm:mb-8">
             Get data-driven insights in minutes, not weeks. All tools are free to use.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <Link
               href="/assessment"
-              className="inline-flex items-center justify-center gap-2 bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-emerald-400 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-emerald-400 transition-colors"
             >
               MSP Assessment
               <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
               href="/ai-solutions"
-              className="inline-flex items-center justify-center gap-2 bg-blue-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-400 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-blue-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-400 transition-colors"
             >
               AI Solutions Architect
               <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
               href="/coterm-calc"
-              className="inline-flex items-center justify-center gap-2 bg-purple-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-purple-400 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-purple-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-purple-400 transition-colors"
             >
               Co-Term Calc
               <ArrowRight className="h-5 w-5" />

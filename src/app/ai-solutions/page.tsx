@@ -1043,6 +1043,22 @@ export default function AISolutionsArchitect() {
   const contentRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Mobile panel states
+  const [isMobileLeftPanelOpen, setIsMobileLeftPanelOpen] = useState(false);
+  const [isMobileRightPanelOpen, setIsMobileRightPanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const category = CATEGORIES.find(c => c.id === selectedCategory);
 
   // For UCaaS, pick the right field track based on the first answer
@@ -1881,15 +1897,81 @@ Respond ONLY with valid JSON, no markdown, no backticks:
             @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
             @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+            @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
             .cat-card:hover { transform: translateY(-4px) !important; border-color: var(--accent) !important; box-shadow: 0 8px 40px var(--glow) !important; }
             .cat-card:hover .cat-arrow { transform: translateX(4px); opacity: 1; }
           `}</style>
 
+          {/* Mobile Menu Buttons */}
+          {isMobile && (
+            <div style={{
+              position: 'fixed',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '12px',
+              zIndex: 100,
+              padding: '12px',
+              background: 'rgba(10, 13, 20, 0.95)',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              <button
+                onClick={() => {
+                  setIsMobileLeftPanelOpen(!isMobileLeftPanelOpen);
+                  setIsMobileRightPanelOpen(false);
+                }}
+                style={{
+                  padding: '10px 16px',
+                  background: isMobileLeftPanelOpen ? 'linear-gradient(to right, rgb(16,185,129), rgb(5,150,105))' : 'rgba(255,255,255,0.05)',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all 0.2s',
+                }}
+              >
+                💾 Saved
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileRightPanelOpen(!isMobileRightPanelOpen);
+                  setIsMobileLeftPanelOpen(false);
+                }}
+                style={{
+                  padding: '10px 16px',
+                  background: isMobileRightPanelOpen ? 'linear-gradient(to right, rgb(59,130,246), rgb(37,99,235))' : 'rgba(255,255,255,0.05)',
+                  color: 'white',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'all 0.2s',
+                }}
+              >
+                💬 AI Chat
+              </button>
+            </div>
+          )}
+
           {/* Left Panel - Saved Solutions */}
           <aside style={{
-            width: `${leftWidth}px`,
-            borderRight: "1px solid rgba(255,255,255,0.06)",
-            display: "flex",
+            width: isMobile ? '0px' : `${leftWidth}px`,
+            borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
+            display: isMobile ? 'none' : 'flex',
             flexDirection: "column",
             background: "#0a0d14",
             height: "100%",
@@ -2102,6 +2184,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
           </aside>
 
           {/* Resize Handle - Left */}
+          {!isMobile && (
           <div
             onMouseDown={handleResizeLeft}
             style={{
@@ -2118,12 +2201,17 @@ Respond ONLY with valid JSON, no markdown, no backticks:
               e.currentTarget.style.background = "transparent";
             }}
           />
+          )}
 
           {/* Main Content */}
-          <main style={{ flex: 1, overflow: "hidden", padding: "20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "40px" }}>
+          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: isMobile ? "16px" : "20px", position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: isMobile ? "20px" : "40px", paddingBottom: isMobile ? "100px" : "20px" }}>
             {/* Ambient background */}
-            <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+            {!isMobile && (
+              <>
+                <div style={{ position: "absolute", top: "-200px", right: "-200px", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+                <div style={{ position: "absolute", bottom: "-300px", left: "-200px", width: "800px", height: "800px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+              </>
+            )}
 
             <div style={{ width: "100%", maxWidth: "800px", position: "relative", zIndex: 1, margin: "0 auto" }}>
             {/* Hero */}
@@ -2143,7 +2231,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
             {/* Category Grid */}
             <div>
               <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both", textAlign: "center" }}>Choose your project type</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", maxWidth: "700px", margin: "0 auto" }}>
                 {CATEGORIES.map((cat, i) => (
                   <div
                     key={cat.id}
@@ -2153,34 +2241,34 @@ Respond ONLY with valid JSON, no markdown, no backticks:
                       // @ts-ignore
                       "--accent": cat.color,
                       "--glow": cat.color + "20",
-                      padding: "18px",
-                      borderRadius: "10px",
+                      padding: "24px",
+                      borderRadius: "12px",
                       border: "1px solid rgba(255,255,255,0.06)",
                       background: "rgba(255,255,255,0.02)",
                       cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
                       display: "flex",
-                      alignItems: "flex-start",
-                      gap: "14px",
+                      alignItems: "center",
+                      gap: "20px",
                       animation: `slideUp 0.6s ease ${0.1 + i * 0.05}s both`
                     }}
                   >
                     <div style={{
-                      width: "40px", height: "40px", borderRadius: "8px",
+                      width: "56px", height: "56px", borderRadius: "12px",
                       background: `${cat.color}15`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "20px", flexShrink: 0
+                      fontSize: "28px", flexShrink: 0
                     }}>
                       {cat.icon}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "3px" }}>{cat.title}</h3>
+                        <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>{cat.title}</h3>
                         <span className="cat-arrow" style={{ color: "#475569", opacity: 0, transition: "all 0.3s" }}>
                           <ArrowRight />
                         </span>
                       </div>
-                      <p style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.4 }}>{cat.subtitle}</p>
+                      <p style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.5 }}>{cat.subtitle}</p>
                     </div>
                   </div>
                 ))}
@@ -2190,6 +2278,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
           </main>
 
           {/* Resize Handle - Right */}
+          {!isMobile && (
           <div
             onMouseDown={handleResizeRight}
             style={{
@@ -2206,12 +2295,13 @@ Respond ONLY with valid JSON, no markdown, no backticks:
               e.currentTarget.style.background = "transparent";
             }}
           />
+          )}
 
           {/* Right Panel - Chat */}
           <aside style={{
-            width: `${rightWidth}px`,
+            width: isMobile ? '0px' : `${rightWidth}px`,
             borderLeft: "1px solid rgba(255,255,255,0.06)",
-            display: "flex",
+            display: isMobile ? 'none' : 'flex',
             flexDirection: "column",
             background: "#0a0d14",
             height: "100%",
@@ -2277,8 +2367,194 @@ Respond ONLY with valid JSON, no markdown, no backticks:
               </button>
             </div>
           </aside>
+
+          {/* Mobile Left Panel Overlay - Saved Solutions */}
+          {isMobile && isMobileLeftPanelOpen && (
+            <>
+              <div
+                onClick={() => setIsMobileLeftPanelOpen(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  zIndex: 200,
+                  backdropFilter: 'blur(4px)',
+                }}
+              />
+              <aside style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '85%',
+                maxWidth: '350px',
+                background: '#0a0d14',
+                zIndex: 201,
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '4px 0 24px rgba(0,0,0,0.3)',
+                animation: 'slideInLeft 0.3s ease-out',
+              }}>
+                <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    💾 Saved Solutions
+                  </h2>
+                  <button
+                    onClick={() => setIsMobileLeftPanelOpen(false)}
+                    style={{
+                      padding: '8px',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#e2e8f0',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '20px',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+                  {savedSolutions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
+                      <p style={{ fontSize: '14px' }}>No saved solutions yet</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {savedSolutions.map((solution) => (
+                        <div
+                          key={solution.id}
+                          style={{
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                          onClick={() => {
+                            handleLoadSolution(solution.id);
+                            setIsMobileLeftPanelOpen(false);
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e8f0', marginBottom: '4px' }}>
+                                {solution.title}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                {new Date(solution.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSolution(solution.id);
+                              }}
+                              style={{
+                                padding: '6px',
+                                background: 'transparent',
+                                color: '#ef4444',
+                                border: 'none',
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                transition: 'background 0.2s',
+                                fontSize: '16px',
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </aside>
+            </>
+          )}
+
+          {/* Mobile Right Panel Overlay - AI Chat */}
+          {isMobile && isMobileRightPanelOpen && (
+            <>
+              <div
+                onClick={() => setIsMobileRightPanelOpen(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  zIndex: 200,
+                  backdropFilter: 'blur(4px)',
+                }}
+              />
+              <aside style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: '85%',
+                maxWidth: '350px',
+                background: '#0a0d14',
+                zIndex: 201,
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '-4px 0 24px rgba(0,0,0,0.3)',
+                animation: 'slideInRight 0.3s ease-out',
+              }}>
+                <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#e2e8f0', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    💬 AI Architect
+                  </h2>
+                  <button
+                    onClick={() => setIsMobileRightPanelOpen(false)}
+                    style={{
+                      padding: '8px',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#e2e8f0',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '20px',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div style={{ flex: 1, padding: '20px 16px', color: '#94a3b8', fontSize: '14px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>💬</div>
+                    <p>Select a category to start chatting with the AI Architect</p>
+                  </div>
+                </div>
+              </aside>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Paywall Modal for non-logged-in users on home view */}
+      {showPaywall && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          builderName="AI Solutions Architect"
+          requiredTier="professional"
+          reason="not_logged_in"
+          designsCreated={designsCreated}
+          designLimit={designLimit}
+        />
+      )}
       </>
     );
   }

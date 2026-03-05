@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { User } from 'lucide-react';
+import { User, Menu, X } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 import { LoginModal } from './login-modal';
 import { OnboardingWizard } from './onboarding-wizard';
@@ -18,6 +18,7 @@ export function SiteHeader() {
   const router = useRouter();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -85,42 +86,52 @@ export function SiteHeader() {
   return (
     <>
       <TrialBanner />
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-8">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          {/* Logo */}
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
-            <Image src="/trueitcost-logo.png" alt="TrueITCost" width={300} height={90} className="h-20 w-auto" priority />
+            <Image
+              src="/trueitcost-logo.png"
+              alt="TrueITCost"
+              width={300}
+              height={90}
+              className="h-12 sm:h-16 md:h-20 w-auto"
+              priority
+            />
           </Link>
-          <div className="flex items-center gap-6 flex-1 justify-end">
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center gap-6 flex-1 justify-end">
             <nav className="flex items-center gap-1">
-                <Link
-                  href="/assessment"
-                  className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                >
-                  <div className="font-medium text-slate-700 dark:text-slate-300">MSP Assessment</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Evaluate MSP value & ROI</div>
-                </Link>
-                <Link
-                  href="/ai-solutions"
-                  onClick={handleAISolutionsClick}
-                  className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                >
-                  <div className="font-medium text-slate-700 dark:text-slate-300">AI Solutions Architect</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Design IT infrastructure</div>
-                </Link>
-                <Link
-                  href="/coterm-calc"
-                  className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                >
-                  <div className="font-medium text-slate-700 dark:text-slate-300">Co-Term Calc</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Align license renewals</div>
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                >
-                  <div className="font-medium text-slate-700 dark:text-slate-300">Pricing</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">View plans</div>
-                </Link>
+              <Link
+                href="/assessment"
+                className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">MSP Assessment</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Evaluate MSP value & ROI</div>
+              </Link>
+              <Link
+                href="/ai-solutions"
+                onClick={handleAISolutionsClick}
+                className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">AI Solutions Architect</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Design IT infrastructure</div>
+              </Link>
+              <Link
+                href="/coterm-calc"
+                className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Co-Term Calc</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Align license renewals</div>
+              </Link>
+              <Link
+                href="/pricing"
+                className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Pricing</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">View plans</div>
+              </Link>
             </nav>
             <div className="h-8 w-px bg-slate-300 dark:bg-slate-600" />
 
@@ -148,7 +159,93 @@ export function SiteHeader() {
 
             <ThemeToggle />
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex lg:hidden items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+              ) : (
+                <Menu className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <nav className="px-4 py-4 space-y-2">
+              <Link
+                href="/assessment"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">MSP Assessment</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Evaluate MSP value & ROI</div>
+              </Link>
+              <Link
+                href="/ai-solutions"
+                onClick={(e) => {
+                  handleAISolutionsClick(e);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">AI Solutions Architect</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Design IT infrastructure</div>
+              </Link>
+              <Link
+                href="/coterm-calc"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Co-Term Calc</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Align license renewals</div>
+              </Link>
+              <Link
+                href="/pricing"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Pricing</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">View plans</div>
+              </Link>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                {!loading && (
+                  <>
+                    {user ? (
+                      <Link
+                        href="/account"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-medium transition-all shadow-sm"
+                      >
+                        <User className="w-4 h-4" />
+                        My Account
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsLoginModalOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-medium transition-all shadow-sm"
+                      >
+                        Login
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       <LoginModal
