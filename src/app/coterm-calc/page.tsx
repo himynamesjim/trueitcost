@@ -749,6 +749,43 @@ export default function CoTermCalcPage() {
     }
   };
 
+  const handleLoadDesign = async (designId: string) => {
+    try {
+      const design = savedDesigns.find(d => d.id === designId);
+      if (!design) return;
+
+      const designData = design.design_data || {};
+
+      // Load all the design data into state
+      setCurrentDesignId(design.id);
+      setAgreementStartDate(designData.agreementStartDate || '2025-04-02');
+      setAgreementTermMonths(designData.agreementTermMonths || 36);
+      setCoTermStartDate(designData.coTermStartDate || new Date().toISOString().split('T')[0]);
+      setUseCalculatedMonths(designData.useCalculatedMonths ?? true);
+      setNumberOfLineItems(designData.numberOfLineItems || 1);
+      setBillingTerm(designData.billingTerm || 'Annual');
+      setLicenses(designData.licenses || [{
+        id: '1',
+        serviceDescription: '',
+        quantity: 1,
+        annualCost: 0,
+        additionalLicenses: 0
+      }]);
+      setCompanyLogo(designData.companyLogo || null);
+
+      // Load AI chat messages if available
+      if (design.ai_response?.messages) {
+        setChatMessages(design.ai_response.messages);
+      }
+
+      // Set to the appropriate step
+      setCurrentStep(designData.currentStep || 1);
+    } catch (error) {
+      console.error('Error loading calculation:', error);
+      alert('An error occurred while loading the calculation. Please try again.');
+    }
+  };
+
   const handleRenameDesign = async (designId: string) => {
     if (!editingDesignTitle.trim()) {
       alert('Please enter a name for the calculation.');
