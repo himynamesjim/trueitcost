@@ -937,6 +937,9 @@ export default function CoTermCalcPage() {
     }
   };
 
+  // Alias for mobile panel compatibility
+  const handleSendChat = handleSendMessage;
+
   const handleResizeLeft = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
