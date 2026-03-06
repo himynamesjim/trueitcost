@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { X, Mail, Loader2 } from 'lucide-react';
-import { signInWithGoogle, signInWithMagicLink } from '@/lib/auth/actions';
+import { signInWithGoogle, signInWithMagicLink, registerWithTrial } from '@/lib/auth/actions';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -27,11 +28,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setSuccess('');
 
     try {
-      const result = await signInWithMagicLink(email);
-
-      if (result.success) {
-        setSuccess('Check your email for the magic link!');
-        setEmail('');
+      let result;
+      if (mode === 'register') {
+        result = await registerWithTrial(email);
+        if (result.success) {
+          setSuccess('Check your email to activate your free 7-day trial!');
+          setEmail('');
+        }
+      } else {
+        result = await signInWithMagicLink(email);
+        if (result.success) {
+          setSuccess('Check your email for the magic link!');
+          setEmail('');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
@@ -95,9 +104,57 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               Welcome to TrueITCost
             </h2>
             <p className="text-slate-400 text-sm">
-              Sign in to save your designs and access premium features
+              {mode === 'signin'
+                ? 'Sign in to save your designs and access premium features'
+                : 'Start your free 7-day trial - no credit card required'
+              }
             </p>
           </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 bg-slate-800/50 p-1 rounded-lg">
+            <button
+              onClick={() => {
+                setMode('signin');
+                setError('');
+                setSuccess('');
+              }}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                mode === 'signin'
+                  ? 'bg-emerald-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setMode('register');
+                setError('');
+                setSuccess('');
+              }}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                mode === 'register'
+                  ? 'bg-emerald-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              Register
+            </button>
+          </div>
+
+          {/* Trial Benefits - Show only in register mode */}
+          {mode === 'register' && (
+            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <p className="text-emerald-400 text-sm font-semibold mb-2">🎉 Free 7-Day Trial Includes:</p>
+              <ul className="text-emerald-300 text-xs space-y-1">
+                <li>✓ 6 designs across all tools</li>
+                <li>✓ Full access to all features</li>
+                <li>✓ No credit card required</li>
+                <li>✓ Cancel anytime</li>
+              </ul>
+            </div>
+          )}
 
           {/* Error/Success Messages */}
           {error && (
@@ -166,12 +223,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Sending magic link...
+                  {mode === 'register' ? 'Creating your account...' : 'Sending magic link...'}
                 </>
               ) : (
                 <>
                   <Mail className="w-5 h-5" />
-                  Send magic link
+                  {mode === 'register' ? 'Start Free Trial' : 'Send magic link'}
                 </>
               )}
             </button>

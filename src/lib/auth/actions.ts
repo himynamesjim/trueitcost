@@ -39,6 +39,26 @@ export async function signInWithMagicLink(email: string) {
   return { success: true };
 }
 
+export async function registerWithTrial(email: string) {
+  const supabase = await createClient();
+
+  // Send magic link for authentication
+  const { error: authError } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?trial=true`,
+    },
+  });
+
+  if (authError) {
+    throw authError;
+  }
+
+  // Note: The trial will be created in the auth callback or via database trigger
+  // when the user confirms their email and their profile is created
+  return { success: true };
+}
+
 export async function signOut() {
   const supabase = await createClient();
 

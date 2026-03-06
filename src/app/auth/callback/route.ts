@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const trial = searchParams.get('trial');
   const next = searchParams.get('next') ?? '/';
 
   if (code) {
@@ -11,6 +12,33 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // If this is a trial registration, create the trial subscription
+      if (trial === 'true') {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          // Calculate trial end date (7 days from now)
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+          // Update or insert profile with trial information
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              email: user.email,
+              subscription_tier: 'trial',
+              subscription_status: 'active',
+              trial_end_date: trialEndDate.toISOString(),
+              designs_created: 0,
+              design_limit: 6,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'id',
+            });
+        }
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
 
