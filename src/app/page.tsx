@@ -109,133 +109,155 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Our Tools */}
-      <section id="tools" className="py-12 sm:py-16 px-4 bg-slate-50 dark:bg-slate-800">
-        <div className="max-w-5xl mx-auto">
+      {/* Tool Explainers with Screenshots */}
+      <section id="tools" className="py-12 sm:py-16 px-4 bg-white dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-4">
-            Our Tools
+            See Our Tools in Action
           </h2>
-          <p className="text-center text-slate-600 dark:text-slate-300 mb-8 sm:mb-12 max-w-2xl mx-auto">
-            Three powerful tools designed to help you make informed IT decisions with confidence.
+          <p className="text-center text-slate-600 dark:text-slate-300 mb-12 max-w-2xl mx-auto">
+            Each tool is designed to simplify complex IT decisions with intuitive interfaces and AI-powered insights.
           </p>
 
-          <div className="grid gap-6 sm:gap-8 max-w-4xl mx-auto">
-            {/* MSP Assessment */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-start gap-4">
-                <div className="text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                  <TrendingUp className="h-10 w-10" />
+          {/* MSP Assessment Explainer */}
+          <div className="mb-16">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">MSP Assessment Tool</h3>
                 </div>
-                <div className="flex-grow">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">MSP Assessment</h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
-                    Not sure if your business needs a Managed Service Provider? This tool helps you evaluate whether partnering with an MSP makes financial sense for your organization.
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      Compare total cost of ownership: MSP vs. in-house IT staff
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      Understand hidden costs like downtime risk, security gaps, and opportunity costs
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      Get a detailed ROI projection tailored to your business size and industry
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      Receive an unbiased recommendation based on your specific needs
-                    </li>
-                  </ul>
-                  <Link
-                    href="/assessment"
-                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-emerald-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
-                  >
-                    Start MSP Assessment
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  Answer a few questions about your business and current IT setup, and our AI will analyze whether partnering with an MSP makes financial sense for you.
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    Interactive wizard guides you through key business questions
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    AI analyzes your responses and calculates total cost of ownership
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    Get detailed cost breakdowns and ROI projections
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    Save and export your results for stakeholder review
+                  </li>
+                </ul>
+                <Link
+                  href="/assessment"
+                  className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+                >
+                  Try MSP Assessment
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-2">MSP Assessment Screenshot</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm">Placeholder for screenshot</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* AI Solutions Architect */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-start gap-4">
-                <div className="text-blue-600 dark:text-blue-400 flex-shrink-0">
-                  <Server className="h-10 w-10" />
-                </div>
-                <div className="flex-grow">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">AI Solutions Architect</h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
-                    Get expert-level IT infrastructure recommendations powered by AI. Whether you&apos;re planning a cloud migration, designing a new network, or choosing between technology stacks, our AI architect provides tailored solutions.
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      Get personalized infrastructure designs based on your business requirements
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      Compare cloud vs. on-premise solutions with detailed cost breakdowns
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      Receive vendor-neutral recommendations for hardware, software, and services
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                      Get implementation roadmaps with timelines and resource requirements
-                    </li>
-                  </ul>
-                  <Link
-                    href="/ai-solutions"
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
-                  >
-                    Try AI Solutions Architect
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
+          {/* AI Solutions Architect Explainer */}
+          <div className="mb-16">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="order-2 md:order-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-2">AI Solutions Architect Screenshot</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm">Placeholder for screenshot</p>
                 </div>
               </div>
-            </div>
-
-            {/* Co-Term Calc */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-6 sm:p-8 border-2 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all">
-              <div className="flex flex-col sm:flex-row items-start gap-4">
-                <div className="text-purple-600 dark:text-purple-400 flex-shrink-0">
-                  <Calculator className="h-10 w-10" />
+              <div className="order-1 md:order-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-blue-600 dark:text-blue-400">
+                    <Server className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">AI Solutions Architect</h3>
                 </div>
-                <div className="flex-grow">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3">Co-Term Calc</h3>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-4">
-                    Simplify software license management and renewals. Calculate co-termination dates, prorate costs, and align all your software subscriptions to a single renewal date for easier budgeting and vendor management.
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      Calculate exact prorated costs when aligning subscription renewal dates
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      Consolidate multiple software renewals into a single annual review
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      Identify opportunities to save money by optimizing license counts
-                    </li>
-                    <li className="flex items-start gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      Export detailed reports for finance and procurement teams
-                    </li>
-                  </ul>
-                  <Link
-                    href="/coterm-calc"
-                    className="inline-flex items-center gap-2 bg-purple-600 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-purple-700 transition-colors w-full sm:w-auto justify-center sm:justify-start"
-                  >
-                    Open Co-Term Calculator
-                    <ArrowRight className="h-5 w-5" />
-                  </Link>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  Describe your IT infrastructure needs and let our AI architect design custom solutions with detailed recommendations and cost estimates.
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    Chat with AI to explain your infrastructure requirements
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    Receive tailored architecture designs and vendor recommendations
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    Get cost breakdowns for hardware, software, and services
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    Export professional proposals for management approval
+                  </li>
+                </ul>
+                <Link
+                  href="/ai-solutions"
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Try AI Solutions Architect
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Co-Term Calculator Explainer */}
+          <div className="mb-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-purple-600 dark:text-purple-400">
+                    <Calculator className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Co-Term Calculator</h3>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 mb-4">
+                  Input your software licenses and subscription details to calculate exact prorated costs for aligning all renewals to a single date.
+                </p>
+                <ul className="space-y-2 mb-6">
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                    Enter license details and renewal dates in simple forms
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                    AI calculates optimal co-termination strategies
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                    Visualize costs with interactive charts and breakdowns
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                    Export detailed reports for procurement teams
+                  </li>
+                </ul>
+                <Link
+                  href="/coterm-calc"
+                  className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Try Co-Term Calculator
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-2">Co-Term Calculator Screenshot</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm">Placeholder for screenshot</p>
                 </div>
               </div>
             </div>
@@ -244,7 +266,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-12 sm:py-16 px-4 bg-white dark:bg-slate-900">
+      <section className="py-12 sm:py-16 px-4 bg-slate-50 dark:bg-slate-800">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900 dark:text-white mb-8 sm:mb-12">
             How It Works

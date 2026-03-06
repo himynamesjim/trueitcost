@@ -559,7 +559,7 @@ export default function AssessmentPage() {
       {isMobile && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
+          bottom: '60px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
