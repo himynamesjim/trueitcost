@@ -262,11 +262,14 @@ export default function Home() {
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </div>
-              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[300px] flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-2">Co-Term Calculator Screenshot</p>
-                  <p className="text-slate-400 dark:text-slate-500 text-sm">Placeholder for screenshot</p>
-                </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-lg">
+                <Image
+                  src="/coterm-calc-screenshot.png"
+                  alt="Co-Term Calculator Interface"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                />
               </div>
             </div>
           </div>
