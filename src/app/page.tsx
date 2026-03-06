@@ -175,11 +175,14 @@ export default function Home() {
           {/* AI Solutions Architect Explainer */}
           <div className="mb-16">
             <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="order-2 md:order-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 min-h-[300px] flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-2">AI Solutions Architect Screenshot</p>
-                  <p className="text-slate-400 dark:text-slate-500 text-sm">Placeholder for screenshot</p>
-                </div>
+              <div className="order-2 md:order-1 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-lg">
+                <Image
+                  src="/ai-solution-architect-screenshot.png"
+                  alt="AI Solutions Architect Interface"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                />
               </div>
               <div className="order-1 md:order-2">
                 <div className="flex items-center gap-3 mb-4">
