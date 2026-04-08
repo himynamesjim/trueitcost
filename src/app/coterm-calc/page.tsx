@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SiteHeader } from '@/components/site-header';
-import { CheckCircle2, Calendar, FileText, Mail, Minus, Plus, Download, Trash2, Calculator, Edit2, Save, RefreshCw, ChevronDown, ChevronUp, MessageSquare, Send, X } from 'lucide-react';
+import { CheckCircle2, Calendar, FileText, Mail, Minus, Plus, Download, Trash2, Calculator, Edit2, Save, RefreshCw, ChevronDown, ChevronUp, MessageSquare, Send, X, Info } from 'lucide-react';
 import { PaywallModal } from '@/components/paywall-modal';
 import { useFeatureAccess } from '@/hooks/use-feature-access';
+import NavMenu from '@/components/nav-menu';
 
 interface LicenseItem {
   id: string;
@@ -44,6 +45,78 @@ export default function CoTermCalcPage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Load solution from saved solutions page
+  useEffect(() => {
+    const loadSolution = async () => {
+      const loadSolutionId = localStorage.getItem('loadSolutionId');
+      if (!loadSolutionId) return;
+
+      console.log('🔄 Loading CoTerm calculation from saved solutions:', loadSolutionId);
+
+      try {
+        // Fetch the specific solution
+        const response = await fetch('/api/get-designs');
+        if (response.ok) {
+          const data = await response.json();
+          const solution = data.designs?.find((d: any) => d.id === loadSolutionId);
+
+          console.log('📊 Found solution:', solution);
+
+          if (solution && solution.design_type === 'coterm-calc') {
+            const designData = solution.design_data || {};
+            console.log('📦 Design data:', designData);
+
+            // Restore agreement info
+            if (designData.agreementStartDate) setAgreementStartDate(designData.agreementStartDate);
+            if (designData.agreementTermMonths) setAgreementTermMonths(designData.agreementTermMonths);
+            if (designData.coTermStartDate) setCoTermStartDate(designData.coTermStartDate);
+            if (designData.useCalculatedMonths !== undefined) setUseCalculatedMonths(designData.useCalculatedMonths);
+            if (designData.manualMonthsRemaining) setManualMonthsRemaining(designData.manualMonthsRemaining);
+            if (designData.addExtension !== undefined) setAddExtension(designData.addExtension);
+            if (designData.extensionMonths) setExtensionMonths(designData.extensionMonths);
+
+            // Restore licensing info
+            if (designData.numberOfLineItems) setNumberOfLineItems(designData.numberOfLineItems);
+            if (designData.billingTerm) setBillingTerm(designData.billingTerm);
+            if (designData.licenses) {
+              console.log('📝 Restoring licenses:', designData.licenses);
+              setLicenses(designData.licenses);
+            }
+
+            // Set the design ID to prevent auto-save duplicates
+            setCurrentDesignId(solution.id);
+
+            // Advance to results step if available
+            const hasData = solution.ai_response || designData.licenses?.length > 0;
+            console.log('✅ Has data to show results?', hasData, {
+              ai_response: !!solution.ai_response,
+              licenses_count: designData.licenses?.length || 0
+            });
+
+            if (hasData) {
+              console.log('🎯 Advancing to step 3 (results)');
+              setCurrentStep(3);
+            } else {
+              console.log('⚠️ No data found, staying at step 0');
+            }
+
+            console.log('✅ CoTerm calculation loaded successfully');
+          } else {
+            console.error('❌ Solution not found or wrong type');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading coterm calculation:', error);
+      } finally {
+        // Clear the localStorage item
+        localStorage.removeItem('loadSolutionId');
+      }
+    };
+
+    loadSolution();
+  }, []);
+
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
@@ -60,6 +133,7 @@ export default function CoTermCalcPage() {
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [editingDesignId, setEditingDesignId] = useState<string | null>(null);
   const [editingDesignTitle, setEditingDesignTitle] = useState('');
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Step 1: Agreement Info
   const [agreementStartDate, setAgreementStartDate] = useState('2025-04-02');
@@ -100,6 +174,35 @@ export default function CoTermCalcPage() {
 
   const monthsRemaining = calculateMonthsRemaining();
 
+  // Calculate months from co-term start to end of current year
+  const calculateCurrentYearMonths = () => {
+    const coTerm = new Date(coTermStartDate);
+    const start = new Date(agreementStartDate);
+
+    // Calculate the end date of the agreement
+    const agreementEnd = new Date(start);
+    agreementEnd.setMonth(agreementEnd.getMonth() + agreementTermMonths);
+
+    // Calculate which year of the agreement we're in
+    const monthsSinceStart = (coTerm.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    const currentYearNumber = Math.floor(monthsSinceStart / 12);
+
+    // Calculate the end of the current year
+    const currentYearEnd = new Date(start);
+    currentYearEnd.setMonth(currentYearEnd.getMonth() + ((currentYearNumber + 1) * 12));
+
+    // If current year end is beyond agreement end, use agreement end
+    const effectiveYearEnd = currentYearEnd > agreementEnd ? agreementEnd : currentYearEnd;
+
+    // Calculate months from co-term start to end of current year
+    const monthsToYearEnd = (effectiveYearEnd.getTime() - coTerm.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+
+    // Can't be more than total months remaining or less than 0
+    return Math.max(0, Math.min(monthsToYearEnd, monthsRemaining));
+  };
+
+  const currentYearMonths = calculateCurrentYearMonths();
+
   const updateLicense = (id: string, field: keyof LicenseItem, value: any) => {
     if (!handleInteraction()) return;
     setLicenses(licenses.map(l => l.id === id ? { ...l, [field]: value } : l));
@@ -110,12 +213,15 @@ export default function CoTermCalcPage() {
     let monthlyRate = 0;
     if (billingTerm === 'Monthly') {
       monthlyRate = license.annualCost; // annualCost field holds monthly cost when billing is monthly
+      return monthlyRate * monthsRemaining;
     } else if (billingTerm === 'Annual') {
       monthlyRate = license.annualCost / 12;
+      // For Annual, calculate current year cost only (for additional licenses)
+      return monthlyRate * license.additionalLicenses * currentYearMonths;
     } else { // Pre-Paid
       monthlyRate = license.annualCost / 12;
+      return monthlyRate * monthsRemaining;
     }
-    return monthlyRate * monthsRemaining;
   };
 
   const calculateResults = () => {
@@ -150,7 +256,19 @@ export default function CoTermCalcPage() {
     const updatedAnnualCost = currentAnnualCost + additionalAnnualCost;
 
     // Calculate remaining total (cost for remaining months)
-    const remainingTotal = updatedMonthlyCost * monthsRemaining;
+    let remainingTotal = updatedMonthlyCost * monthsRemaining;
+
+    // For Annual billing, calculate current year cost only (from co-term start to end of current agreement year)
+    // For Monthly/Pre-Paid, use full remaining term cost
+    let coTermCost = remainingTotal;
+    if (billingTerm === 'Annual') {
+      // Calculate only for ADDITIONAL licenses for current year
+      coTermCost = additionalMonthlyCost * currentYearMonths;
+
+      // For remaining total: current year (additional only) + remaining years (all licenses)
+      const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+      remainingTotal = coTermCost + (updatedMonthlyCost * remainingMonthsAfterCurrentYear);
+    }
 
     // Total cost of ownership
     const totalCostOfOwnership = (currentMonthlyCost * 12) + remainingTotal;
@@ -164,7 +282,7 @@ export default function CoTermCalcPage() {
       monthlyCostChange: updatedMonthlyCost - currentMonthlyCost, // Monthly cost change
       costChangePercent: currentAnnualCost > 0 ? ((updatedAnnualCost - currentAnnualCost) / currentAnnualCost * 100) : 0,
       remainingTotal,
-      coTermCost: remainingTotal, // Cost for remaining months (co-term cost)
+      coTermCost, // For Annual: first year only, For Monthly/Pre-Paid: full remaining term
       totalCostOfOwnership,
       totalLicenses: licenses.reduce((sum, l) => sum + l.quantity + l.additionalLicenses, 0)
     };
@@ -418,6 +536,23 @@ export default function CoTermCalcPage() {
       doc.text(`Months Remaining: ${monthsRemaining.toFixed(2)} months`, 15, yPos);
       yPos += 12;
 
+      // Calculate the table's remaining total for PDF (used in multiple places)
+      const tableRemainingTotal = licenses.reduce((sum, license) => {
+        let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
+        let remainingTotal;
+
+        if (billingTerm === 'Annual') {
+          const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+          const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+          const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+          remainingTotal = currentYearCost + remainingYearsCost;
+        } else {
+          remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+        }
+
+        return sum + remainingTotal;
+      }, 0);
+
       // Cost Summary Boxes
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
@@ -449,7 +584,7 @@ export default function CoTermCalcPage() {
       doc.setFillColor(59, 130, 246); // Blue
       doc.rect(startX + (boxWidth + 2) * 2, yPos, boxWidth, boxHeight, 'F');
       doc.text('Remaining Term', startX + (boxWidth + 2) * 2 + 2, yPos + 6);
-      doc.text(`$${results.remainingTotal.toFixed(2)}`, startX + (boxWidth + 2) * 2 + 2, yPos + 15);
+      doc.text(`$${tableRemainingTotal.toFixed(2)}`, startX + (boxWidth + 2) * 2 + 2, yPos + 15);
 
       // Cost Change Box
       doc.setFillColor(249, 115, 22); // Orange
@@ -506,9 +641,21 @@ export default function CoTermCalcPage() {
       const costDiff = billingTerm === 'Monthly' ? results.monthlyCostChange : results.costChange;
       doc.text(`Difference: +$${costDiff.toFixed(2)}`, 15, yPos);
       yPos += 6;
-      doc.text(`Remaining Term Total: $${results.remainingTotal.toFixed(2)} (${monthsRemaining.toFixed(2)} months)`, 15, yPos);
+
+      // Add Current Year Co-Term Cost for Annual billing
+      if (billingTerm === 'Annual') {
+        doc.text(`Current Year Co-Term Cost: $${results.coTermCost.toFixed(2)} (for ${currentYearMonths.toFixed(2)} months until year end)`, 15, yPos);
+        yPos += 6;
+      }
+
+      doc.text(`Remaining Term Total: $${tableRemainingTotal.toFixed(2)} (${monthsRemaining.toFixed(2)} months)`, 15, yPos);
       yPos += 6;
-      doc.text(`Total Cost of Ownership: $${results.totalCostOfOwnership.toFixed(2)} (${agreementTermMonths} months)`, 15, yPos);
+
+      const totalCostOfOwnership = billingTerm === 'Monthly'
+        ? (results.currentMonthlyCost * 12) + tableRemainingTotal
+        : results.currentAnnualCost + tableRemainingTotal;
+
+      doc.text(`Total Cost of Ownership: $${totalCostOfOwnership.toFixed(2)} (${agreementTermMonths} months)`, 15, yPos);
 
       // Footer
       doc.setFontSize(8);
@@ -528,12 +675,31 @@ export default function CoTermCalcPage() {
   const generateEmailContent = async () => {
     setIsGeneratingEmail(true);
     try {
+      // Calculate the table's remaining total (which matches the breakdown)
+      const tableRemainingTotal = licenses.reduce((sum, license) => {
+        let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
+        let remainingTotal;
+
+        if (billingTerm === 'Annual') {
+          const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+          const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+          const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+          remainingTotal = currentYearCost + remainingYearsCost;
+        } else {
+          remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+        }
+
+        return sum + remainingTotal;
+      }, 0);
+
       // Prepare calculator state for AI
       const calculatorState = {
         agreementStartDate,
         agreementTermMonths,
         coTermStartDate,
         billingTerm,
+        monthsRemaining: monthsRemaining.toFixed(2),
+        currentYearMonths: billingTerm === 'Annual' ? currentYearMonths.toFixed(2) : null,
         licenses: licenses.map(l => ({
           id: l.id,
           serviceDescription: l.serviceDescription,
@@ -548,8 +714,11 @@ export default function CoTermCalcPage() {
           updatedAnnualCost: results.updatedAnnualCost,
           monthlyCostChange: results.monthlyCostChange,
           costChange: results.costChange,
-          remainingTotal: results.remainingTotal,
-          totalCostOfOwnership: results.totalCostOfOwnership
+          coTermCost: billingTerm === 'Annual' ? results.coTermCost : null,
+          remainingTotal: tableRemainingTotal,
+          totalCostOfOwnership: billingTerm === 'Monthly'
+            ? (results.currentMonthlyCost * 12) + tableRemainingTotal
+            : results.currentAnnualCost + tableRemainingTotal
         }
       };
 
@@ -561,7 +730,13 @@ export default function CoTermCalcPage() {
           messages: [
             {
               role: 'user',
-              content: 'Generate a professional email that explains this co-terming proposal. Include the agreement details, cost breakdown, and license details. DO NOT include a "Co-Terming Benefits" section. Format it ready to copy and paste into an email.'
+              content: `Generate a professional email that explains this co-terming proposal for a ${billingTerm} billing agreement. ${
+                billingTerm === 'Annual'
+                  ? 'Focus on the Annual costs, the Current Year Co-Term Cost (which covers the remaining months until the end of the current agreement year), and the Remaining Term Total (which includes the current year co-term cost plus the remaining years).'
+                  : billingTerm === 'Monthly'
+                  ? 'Focus on the Monthly costs and how the monthly spend will change.'
+                  : 'Focus on the Pre-Paid costs and the total remaining term.'
+              } Include the agreement details, cost breakdown showing the specific metrics for ${billingTerm} billing, and license details. DO NOT include a "Co-Terming Benefits" section. Format it ready to copy and paste into an email.`
             }
           ],
           calculatorState
@@ -981,8 +1156,8 @@ export default function CoTermCalcPage() {
   const StepIndicator = ({ step, title, status }: { step: number; title: string; status: 'complete' | 'current' | 'upcoming' }) => (
     <div className="flex items-center gap-3">
       <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-        status === 'complete' ? 'bg-green-600 text-white' :
-        status === 'current' ? 'bg-blue-600 text-white' :
+        status === 'complete' ? 'bg-green-600 text-slate-900 dark:text-white' :
+        status === 'current' ? 'bg-blue-600 text-slate-900 dark:text-white' :
         'bg-slate-700 text-slate-400'
       }`}>
         {status === 'complete' ? <CheckCircle2 className="h-5 w-5" /> : step}
@@ -1028,7 +1203,7 @@ export default function CoTermCalcPage() {
   };
 
   return (
-    <div className="bg-slate-950 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="bg-slate-50 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <SiteHeader />
 
       <style>{`
@@ -1107,240 +1282,22 @@ export default function CoTermCalcPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, display: "flex", background: "#0c0f18", color: "#e2e8f0", fontFamily: "'Outfit', sans-serif", overflow: "hidden", position: 'relative' }}>
-        {/* Left Panel - Saved Calculations */}
-        <aside style={{
+      <div className="dark:bg-[#0c0f18] bg-slate-100 dark:text-slate-200 text-slate-900" style={{ flex: 1, display: "flex", fontFamily: "'Outfit', sans-serif", overflow: "hidden", position: 'relative' }}>
+        {/* Left Panel - Navigation Menu */}
+        <aside className="dark:bg-[#0a0d14] bg-white" style={{
           width: isMobile ? '0px' : `${leftWidth}px`,
           borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
-          background: "#0a0d14",
           overflow: "hidden",
         }}>
           <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-              <span style={{ fontSize: "18px" }}>🧮</span>
-              <span style={{ fontSize: "14px", fontWeight: "600" }}>Co-Term Calculator</span>
-            </div>
+            <h2 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>
+              TrueITCost
+            </h2>
           </div>
-          <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-            {savedDesigns.length === 0 ? (
-              <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-                Saved calculations will appear here.
-              </p>
-            ) : (
-              savedDesigns.map((design) => {
-                const designData = design.design_data || {};
-                const aiResponse = design.ai_response || {};
-                const isComplete = designData.isComplete !== false;
-
-                return (
-                  <div
-                    key={design.id}
-                    style={{
-                      padding: "12px",
-                      marginBottom: "8px",
-                      borderRadius: "8px",
-                      border: "1px solid rgba(168,85,247,0.2)",
-                      background: "rgba(168,85,247,0.05)",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    {/* Status Badge */}
-                    {!isComplete && (
-                      <div style={{ marginBottom: "6px" }}>
-                        <span style={{
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "rgba(251,191,36,0.15)",
-                          color: "#fbbf24",
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          In Progress
-                        </span>
-                      </div>
-                    )}
-                    {isComplete && (
-                      <div style={{ marginBottom: "6px" }}>
-                        <span style={{
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "rgba(34,197,94,0.15)",
-                          color: "#22c55e",
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          Complete
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Title with Edit/Delete buttons */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                      {editingDesignId === design.id ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1 }}>
-                          <input
-                            type="text"
-                            value={editingDesignTitle}
-                            onChange={(e) => setEditingDesignTitle(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameDesign(design.id);
-                              } else if (e.key === 'Escape') {
-                                setEditingDesignId(null);
-                                setEditingDesignTitle('');
-                              }
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: "4px 8px",
-                              fontSize: "13px",
-                              background: "#1e293b",
-                              border: "1px solid rgba(168,85,247,0.3)",
-                              borderRadius: "4px",
-                              color: "#e2e8f0",
-                              outline: "none",
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRenameDesign(design.id);
-                            }}
-                            style={{
-                              padding: "4px 8px",
-                              background: "#10b981",
-                              border: "none",
-                              borderRadius: "4px",
-                              color: "white",
-                              fontSize: "11px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingDesignId(null);
-                              setEditingDesignTitle('');
-                            }}
-                            style={{
-                              padding: "4px 8px",
-                              background: "#475569",
-                              border: "none",
-                              borderRadius: "4px",
-                              color: "white",
-                              fontSize: "11px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div
-                            onClick={() => {
-                              // Load the saved design
-                              setAgreementStartDate(designData.agreementStartDate || '2025-04-02');
-                              setAgreementTermMonths(designData.agreementTermMonths || 36);
-                              setCoTermStartDate(designData.coTermStartDate || new Date().toISOString().split('T')[0]);
-                              setUseCalculatedMonths(designData.useCalculatedMonths !== false);
-                              setManualMonthsRemaining(designData.manualMonthsRemaining || 12);
-                              setAddExtension(designData.addExtension || false);
-                              setExtensionMonths(designData.extensionMonths || 12);
-                              setBillingTerm(designData.billingTerm || 'Annual');
-                              setLicenses(designData.licenses || [{ id: '1', serviceDescription: '', quantity: 1, annualCost: 0, additionalLicenses: 0 }]);
-                              setCompanyLogo(designData.companyLogo || null);
-                              setCurrentStep(designData.currentStep || 1);
-                              setCurrentDesignId(design.id);
-                            }}
-                            style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", cursor: "pointer", flex: 1 }}
-                          >
-                            {design.title}
-                          </div>
-                          <div style={{ display: "flex", gap: "4px" }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingDesignId(design.id);
-                                setEditingDesignTitle(design.title);
-                              }}
-                              style={{
-                                padding: "4px",
-                                background: "transparent",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "#94a3b8",
-                                display: "flex",
-                                alignItems: "center",
-                              }}
-                              title="Rename"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteDesign(design.id);
-                              }}
-                              style={{
-                                padding: "4px",
-                                background: "transparent",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "#ef4444",
-                                display: "flex",
-                                alignItems: "center",
-                              }}
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div
-                      onClick={() => {
-                        if (editingDesignId !== design.id) {
-                          // Load the saved design
-                          setAgreementStartDate(designData.agreementStartDate || '2025-04-02');
-                          setAgreementTermMonths(designData.agreementTermMonths || 36);
-                          setCoTermStartDate(designData.coTermStartDate || new Date().toISOString().split('T')[0]);
-                          setUseCalculatedMonths(designData.useCalculatedMonths !== false);
-                          setManualMonthsRemaining(designData.manualMonthsRemaining || 12);
-                          setAddExtension(designData.addExtension || false);
-                          setExtensionMonths(designData.extensionMonths || 12);
-                          setBillingTerm(designData.billingTerm || 'Annual');
-                          setLicenses(designData.licenses || [{ id: '1', serviceDescription: '', quantity: 1, annualCost: 0, additionalLicenses: 0 }]);
-                          setCompanyLogo(designData.companyLogo || null);
-                          setCurrentStep(designData.currentStep || 1);
-                          setCurrentDesignId(design.id);
-                        }
-                      }}
-                      style={{ cursor: editingDesignId === design.id ? 'default' : 'pointer' }}
-                    >
-                      <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>
-                        {aiResponse.licenseCount || 0} licenses • {aiResponse.monthsRemaining ? `${aiResponse.monthsRemaining.toFixed(1)} months` : 'N/A'}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#a78bfa", fontWeight: 500 }}>
-                        ${(aiResponse.coTermCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <NavMenu />
           </div>
         </aside>
 
@@ -1408,12 +1365,12 @@ export default function CoTermCalcPage() {
             <div style={{ animation: "slideUp 0.4s ease" }}>
         {/* Step 1: Agreement Information */}
         {currentStep === 1 && (
-          <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
-            <h2 className="text-2xl font-bold text-white mb-6">Agreement Information</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-slate-200 dark:border-slate-700">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-900 dark:text-white mb-6">Agreement Information</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Agreement Start Date:
                 </label>
                 <input
@@ -1423,12 +1380,12 @@ export default function CoTermCalcPage() {
                     if (!handleInteraction()) return;
                     setAgreementStartDate(e.target.value);
                   }}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Agreement Term (Months):
                 </label>
                 <div className="flex gap-2">
@@ -1439,14 +1396,14 @@ export default function CoTermCalcPage() {
                       if (!handleInteraction()) return;
                       setAgreementTermMonths(parseInt(e.target.value) || 0);
                     }}
-                    className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     onClick={() => {
                       if (!handleInteraction()) return;
                       setAgreementTermMonths(Math.max(1, agreementTermMonths - 1));
                     }}
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
+                    className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white flex-shrink-0"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
@@ -1455,7 +1412,7 @@ export default function CoTermCalcPage() {
                       if (!handleInteraction()) return;
                       setAgreementTermMonths(agreementTermMonths + 1);
                     }}
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
+                    className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white flex-shrink-0"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -1464,10 +1421,10 @@ export default function CoTermCalcPage() {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Co-Termed Start Date:
               </label>
-              <p className="text-xs text-slate-400 mb-2">Select Co-Termed Start Date:</p>
+              <p className="text-xs dark:text-slate-400 text-slate-600 mb-2">Select Co-Termed Start Date:</p>
               <input
                 type="date"
                 value={coTermStartDate}
@@ -1475,15 +1432,15 @@ export default function CoTermCalcPage() {
                   if (!handleInteraction()) return;
                   setCoTermStartDate(e.target.value);
                 }}
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="text-xs dark:text-slate-400 text-slate-600 mt-2">
                 Selected Co-Termed Start Date: {coTermStartDate}
               </p>
             </div>
 
             <div className="mb-6">
-              <label className="flex items-center gap-2 text-slate-300 mb-3">
+              <label className="flex items-center gap-2 dark:text-slate-300 text-slate-700 mb-3">
                 <input
                   type="checkbox"
                   checked={useCalculatedMonths}
@@ -1491,14 +1448,14 @@ export default function CoTermCalcPage() {
                     if (!handleInteraction()) return;
                     setUseCalculatedMonths(e.target.checked);
                   }}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">Use calculated months remaining</span>
               </label>
 
               {useCalculatedMonths ? (
-                <div className="p-4 bg-blue-900/30 border border-blue-700 rounded-lg">
-                  <p className="text-lg font-semibold text-blue-300">
+                <div className="p-4 dark:bg-blue-900/30 bg-blue-100 border dark:border-blue-700 border-blue-300 rounded-lg">
+                  <p className="text-lg font-semibold dark:text-blue-300 text-blue-700">
                     Calculated Months Remaining: {monthsRemaining.toFixed(2)}
                   </p>
                 </div>
@@ -1510,7 +1467,7 @@ export default function CoTermCalcPage() {
                   border: "1px solid rgba(168,85,247,0.2)",
                   animation: "slideUp 0.3s ease"
                 }}>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Manual Co-Term Months:
                   </label>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1584,7 +1541,7 @@ export default function CoTermCalcPage() {
             </div>
 
             <div className="mb-6">
-              <label className="flex items-center gap-2 text-slate-300 mb-4">
+              <label className="flex items-center gap-2 dark:text-slate-300 text-slate-700 mb-4">
                 <input
                   type="checkbox"
                   checked={addExtension}
@@ -1592,7 +1549,7 @@ export default function CoTermCalcPage() {
                     if (!handleInteraction()) return;
                     setAddExtension(e.target.checked);
                   }}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm">Add Agreement Extension?</span>
               </label>
@@ -1606,7 +1563,7 @@ export default function CoTermCalcPage() {
                   border: "1px solid rgba(168,85,247,0.2)",
                   animation: "slideUp 0.3s ease"
                 }}>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Extension Length (Months):
                   </label>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1683,8 +1640,8 @@ export default function CoTermCalcPage() {
 
         {/* Step 2: Licensing */}
         {currentStep === 2 && (
-          <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
-            <h2 className="text-2xl font-bold text-white mb-6">Service Information</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-slate-200 dark:border-slate-700">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-900 dark:text-white mb-6">Service Information</h2>
 
             {/* Agreement Summary */}
             <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4 mb-6">
@@ -1692,26 +1649,26 @@ export default function CoTermCalcPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div>
                   <div className="text-slate-400">Agreement Start Date:</div>
-                  <div className="text-white font-medium">{agreementStartDate}</div>
+                  <div className="text-slate-900 dark:text-white font-medium">{agreementStartDate}</div>
                 </div>
                 <div>
                   <div className="text-slate-400">Agreement Term:</div>
-                  <div className="text-white font-medium">{agreementTermMonths} months</div>
+                  <div className="text-slate-900 dark:text-white font-medium">{agreementTermMonths} months</div>
                 </div>
                 <div>
                   <div className="text-slate-400">Co-Term Start Date:</div>
-                  <div className="text-white font-medium">{coTermStartDate}</div>
+                  <div className="text-slate-900 dark:text-white font-medium">{coTermStartDate}</div>
                 </div>
                 <div>
                   <div className="text-slate-400">Months Remaining:</div>
-                  <div className="text-white font-medium">{monthsRemaining.toFixed(2)}</div>
+                  <div className="text-slate-900 dark:text-white font-medium">{monthsRemaining.toFixed(2)}</div>
                 </div>
               </div>
             </div>
 
             {/* Manual Entry / Upload Toggle */}
             <div className="flex gap-4 mb-6">
-              <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+              <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-slate-900 dark:text-white rounded-lg font-medium">
                 Manual Entry
               </button>
               <button className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg font-medium">
@@ -1721,7 +1678,7 @@ export default function CoTermCalcPage() {
 
             {/* Instructions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-slate-900 rounded-lg p-4">
+              <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-4">
                 <h4 className="flex items-center gap-2 text-slate-300 font-semibold mb-3">
                   <FileText className="h-5 w-5" />
                   Important Instructions:
@@ -1738,7 +1695,7 @@ export default function CoTermCalcPage() {
                 </ul>
               </div>
 
-              <div className="bg-slate-900 rounded-lg p-4">
+              <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-4">
                 <h4 className="text-slate-300 font-semibold mb-3">For Monthly Agreements:</h4>
                 <p className="text-sm text-slate-400 mb-4">**Enter the Monthly license cost in the "License Cost ($)" field.</p>
 
@@ -1752,7 +1709,7 @@ export default function CoTermCalcPage() {
 
             {/* Line Items Configuration */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Number of Line Items:
               </label>
               <div className="flex gap-2 items-center max-w-xs">
@@ -1780,7 +1737,7 @@ export default function CoTermCalcPage() {
                       setLicenses(licenses.slice(0, num));
                     }
                   }}
-                  className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={() => {
@@ -1789,7 +1746,7 @@ export default function CoTermCalcPage() {
                     setNumberOfLineItems(num);
                     setLicenses(licenses.slice(0, num));
                   }}
-                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -1806,7 +1763,7 @@ export default function CoTermCalcPage() {
                       additionalLicenses: 0
                     }]);
                   }}
-                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -1814,7 +1771,7 @@ export default function CoTermCalcPage() {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Billing Term
               </label>
               <select
@@ -1823,7 +1780,7 @@ export default function CoTermCalcPage() {
                   if (!handleInteraction()) return;
                   setBillingTerm(e.target.value as BillingTerm);
                 }}
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Annual">Annual</option>
                 <option value="Monthly">Monthly</option>
@@ -1834,7 +1791,7 @@ export default function CoTermCalcPage() {
             {/* License Items */}
             {licenses.map((license, index) => (
               <div key={license.id} className="mb-6 bg-slate-900 rounded-lg p-4 border border-slate-700">
-                <h4 className="text-white font-semibold mb-4">Item {index + 1}</h4>
+                <h4 className="text-slate-900 dark:text-white font-semibold mb-4">Item {index + 1}</h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
@@ -1844,7 +1801,7 @@ export default function CoTermCalcPage() {
                       value={license.serviceDescription}
                       onChange={(e) => updateLicense(license.id, 'serviceDescription', e.target.value)}
                       placeholder="Enter service name"
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
@@ -1855,17 +1812,17 @@ export default function CoTermCalcPage() {
                         type="number"
                         value={license.quantity}
                         onChange={(e) => updateLicense(license.id, 'quantity', parseInt(e.target.value) || 0)}
-                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         onClick={() => updateLicense(license.id, 'quantity', Math.max(0, license.quantity - 1))}
-                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
+                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-900 dark:text-white"
                       >
                         <Minus className="h-3 w-3" />
                       </button>
                       <button
                         onClick={() => updateLicense(license.id, 'quantity', license.quantity + 1)}
-                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
+                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-900 dark:text-white"
                       >
                         <Plus className="h-3 w-3" />
                       </button>
@@ -1880,7 +1837,7 @@ export default function CoTermCalcPage() {
                       type="number"
                       value={license.annualCost || ''}
                       onChange={(e) => updateLicense(license.id, 'annualCost', e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
                       placeholder={billingTerm === 'Monthly' ? 'e.g., 100' : 'e.g., 1200'}
                     />
                   </div>
@@ -1892,17 +1849,17 @@ export default function CoTermCalcPage() {
                         type="number"
                         value={license.additionalLicenses}
                         onChange={(e) => updateLicense(license.id, 'additionalLicenses', parseInt(e.target.value) || 0)}
-                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         onClick={() => updateLicense(license.id, 'additionalLicenses', Math.max(0, license.additionalLicenses - 1))}
-                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
+                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-900 dark:text-white"
                       >
                         <Minus className="h-3 w-3" />
                       </button>
                       <button
                         onClick={() => updateLicense(license.id, 'additionalLicenses', license.additionalLicenses + 1)}
-                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
+                        className="px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-900 dark:text-white"
                       >
                         <Plus className="h-3 w-3" />
                       </button>
@@ -1918,14 +1875,14 @@ export default function CoTermCalcPage() {
         {currentStep === 3 && (
           <div className="space-y-6">
             {/* Edit Agreement Section */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <button
                 onClick={() => setShowAgreementEdit(!showAgreementEdit)}
                 className="w-full flex items-center justify-between p-6 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-blue-400" />
-                  <h3 className="text-lg font-semibold text-white">Agreement Information</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Agreement Information</h3>
                   <span className="text-sm text-slate-400">
                     {agreementStartDate} | {agreementTermMonths} months | {monthsRemaining.toFixed(2)} months remaining
                   </span>
@@ -1941,19 +1898,19 @@ export default function CoTermCalcPage() {
                 <div className="p-6 border-t border-slate-700 bg-slate-900/50">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Agreement Start Date:
                       </label>
                       <input
                         type="date"
                         value={agreementStartDate}
                         onChange={(e) => setAgreementStartDate(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Agreement Term (Months):
                       </label>
                       <div className="flex gap-2">
@@ -1961,17 +1918,17 @@ export default function CoTermCalcPage() {
                           type="number"
                           value={agreementTermMonths}
                           onChange={(e) => setAgreementTermMonths(parseInt(e.target.value) || 0)}
-                          className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                         <button
                           onClick={() => setAgreementTermMonths(Math.max(1, agreementTermMonths - 1))}
-                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white flex-shrink-0"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setAgreementTermMonths(agreementTermMonths + 1)}
-                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white flex-shrink-0"
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white flex-shrink-0"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -1979,26 +1936,26 @@ export default function CoTermCalcPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Co-Termed Start Date:
                       </label>
                       <input
                         type="date"
                         value={coTermStartDate}
                         onChange={(e) => setCoTermStartDate(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <p className="text-xs text-slate-400 mt-1">Selected Co-Termed Start Date: {coTermStartDate}</p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Billing Term:
                       </label>
                       <select
                         value={billingTerm}
                         onChange={(e) => setBillingTerm(e.target.value as BillingTerm)}
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="Monthly">Monthly</option>
                         <option value="Annual">Annual</option>
@@ -2036,7 +1993,7 @@ export default function CoTermCalcPage() {
 
                     {addExtension && (
                       <div className="ml-7">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Extension Term (Months):
                         </label>
                         <div className="flex gap-2 max-w-xs">
@@ -2044,17 +2001,17 @@ export default function CoTermCalcPage() {
                             type="number"
                             value={extensionMonths}
                             onChange={(e) => setExtensionMonths(parseInt(e.target.value) || 0)}
-                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                           <button
                             onClick={() => setExtensionMonths(Math.max(1, extensionMonths - 1))}
-                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setExtensionMonths(extensionMonths + 1)}
-                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white"
+                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white"
                           >
                             <Plus className="h-4 w-4" />
                           </button>
@@ -2069,9 +2026,9 @@ export default function CoTermCalcPage() {
               )}
             </div>
 
-            <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-8 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Co-Terming Results ({billingTerm})</h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Co-Terming Results ({billingTerm})</h2>
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-900/30 border border-green-700 rounded-lg">
                   <CheckCircle2 className="h-5 w-5 text-green-400" />
                   <span className="text-green-300 text-sm font-medium">Calculations completed successfully!</span>
@@ -2080,9 +2037,25 @@ export default function CoTermCalcPage() {
 
               {/* Summary Cards */}
               <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-700 rounded-lg p-4">
-                  <div className="text-purple-300 text-sm mb-1">Current {billingTerm} Cost</div>
-                  <div className="text-3xl font-bold text-white">
+                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-700 rounded-lg p-4 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-purple-300 text-sm">Current {billingTerm} Cost</div>
+                    <div className="relative">
+                      <button
+                        onMouseEnter={() => setActiveTooltip('current')}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        className="text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                      {activeTooltip === 'current' && (
+                        <div className="absolute right-0 top-6 w-64 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl z-50 text-xs text-slate-200">
+                          Your current {billingTerm.toLowerCase()} cost for existing licenses before adding any new licenses.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">
                     ${billingTerm === 'Monthly' ? results.currentMonthlyCost.toFixed(2) : results.currentAnnualCost.toFixed(2)}
                   </div>
                   <div className="text-purple-400 text-xs mt-1">
@@ -2091,9 +2064,25 @@ export default function CoTermCalcPage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 border border-green-700 rounded-lg p-4">
-                  <div className="text-green-300 text-sm mb-1">Updated {billingTerm} Cost</div>
-                  <div className="text-3xl font-bold text-white">
+                <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 border border-green-700 rounded-lg p-4 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-green-300 text-sm">Updated {billingTerm} Cost</div>
+                    <div className="relative">
+                      <button
+                        onMouseEnter={() => setActiveTooltip('updated')}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        className="text-green-400 hover:text-green-300 transition-colors"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                      {activeTooltip === 'updated' && (
+                        <div className="absolute right-0 top-6 w-64 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl z-50 text-xs text-slate-200">
+                          Your new {billingTerm.toLowerCase()} cost including all existing licenses plus the additional licenses you're adding.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">
                     ${billingTerm === 'Monthly' ? results.updatedMonthlyCost.toFixed(2) : results.updatedAnnualCost.toFixed(2)}
                   </div>
                   <div className="text-green-400 text-xs mt-1">
@@ -2102,17 +2091,55 @@ export default function CoTermCalcPage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-700 rounded-lg p-4">
-                  <div className="text-blue-300 text-sm mb-1">
-                    {billingTerm === 'Monthly' ? 'Total Cost of Remaining Term' : billingTerm === 'Pre-Paid' ? 'Total Co-Term Cost' : 'First Year Co-Term Cost'}
+                <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-700 rounded-lg p-4 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-blue-300 text-sm">
+                      {billingTerm === 'Monthly' ? 'Total Cost of Remaining Term' : billingTerm === 'Pre-Paid' ? 'Total Co-Term Cost' : 'Current Year Co-Term Cost'}
+                    </div>
+                    <div className="relative">
+                      <button
+                        onMouseEnter={() => setActiveTooltip('coterm')}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        className="text-blue-400 hover:text-blue-300 transition-colors"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                      {activeTooltip === 'coterm' && (
+                        <div className="absolute right-0 top-6 w-64 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl z-50 text-xs text-slate-200">
+                          {billingTerm === 'Monthly'
+                            ? 'The total cost for all licenses (existing + new) for the remaining months until your agreement expires.'
+                            : billingTerm === 'Pre-Paid'
+                              ? 'The one-time co-term cost to add the new licenses for the remaining months of your agreement.'
+                              : 'The pro-rated cost to add new licenses from now until the end of the current contract year. This ensures all licenses renew together.'}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-white">${results.coTermCost.toFixed(2)}</div>
-                  <div className="text-blue-400 text-xs mt-1">For {monthsRemaining.toFixed(2)} months</div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">${results.coTermCost.toFixed(2)}</div>
+                  <div className="text-blue-400 text-xs mt-1">
+                    For {billingTerm === 'Annual' ? currentYearMonths.toFixed(2) : monthsRemaining.toFixed(2)} months
+                  </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border border-orange-700 rounded-lg p-4">
-                  <div className="text-orange-300 text-sm mb-1">Cost Change</div>
-                  <div className="text-3xl font-bold text-white">+{results.costChangePercent.toFixed(1)}%</div>
+                <div className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border border-orange-700 rounded-lg p-4 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-orange-300 text-sm">Cost Change</div>
+                    <div className="relative">
+                      <button
+                        onMouseEnter={() => setActiveTooltip('change')}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        className="text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                      {activeTooltip === 'change' && (
+                        <div className="absolute right-0 top-6 w-64 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl z-50 text-xs text-slate-200">
+                          The percentage and dollar increase in your {billingTerm.toLowerCase()} spending after adding the new licenses.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">+{results.costChangePercent.toFixed(1)}%</div>
                   <div className="text-orange-400 text-xs mt-1">
                     {billingTerm === 'Monthly'
                       ? `+$${results.monthlyCostChange.toFixed(2)}/mo`
@@ -2132,9 +2159,9 @@ export default function CoTermCalcPage() {
               </div>
 
               {/* Detailed Line Items */}
-              <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white font-semibold flex items-center gap-2">
+                  <h3 className="text-slate-900 dark:text-white font-semibold flex items-center gap-2">
                     <FileText className="h-5 w-5 text-blue-400" />
                     Detailed Line Items
                   </h3>
@@ -2149,7 +2176,7 @@ export default function CoTermCalcPage() {
                       };
                       setLicenses([...licenses, newLicense]);
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-slate-900 dark:text-white text-sm font-medium transition-colors flex items-center gap-2"
                   >
                     <Plus className="h-4 w-4" />
                     Add Line Item
@@ -2166,7 +2193,11 @@ export default function CoTermCalcPage() {
                         <th className="text-left text-slate-400 py-3 px-2">Add. Licenses</th>
                         <th className="text-left text-slate-400 py-3 px-2">Current {billingTerm} Cost</th>
                         <th className="text-left text-slate-400 py-3 px-2">
-                          {billingTerm === 'Monthly' ? 'Additional Monthly Cost' : 'Co-Term Cost'}
+                          {billingTerm === 'Monthly'
+                            ? 'Additional Monthly Cost'
+                            : billingTerm === 'Annual'
+                              ? 'Current Year Co-Term Cost'
+                              : 'Co-Term Cost'}
                         </th>
                         <th className="text-left text-slate-400 py-3 px-2">Updated {billingTerm} Cost</th>
                         <th className="text-left text-slate-400 py-3 px-2">Remaining Term Cost</th>
@@ -2191,7 +2222,18 @@ export default function CoTermCalcPage() {
 
                         // Calculate remaining total (always use monthly rate * months)
                         let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
-                        const remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+                        let remainingTotal;
+
+                        if (billingTerm === 'Annual') {
+                          // For Annual: current year (additional only) + remaining years (all licenses)
+                          const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+                          const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+                          const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+                          remainingTotal = currentYearCost + remainingYearsCost;
+                        } else {
+                          // For Monthly/Pre-Paid: standard calculation
+                          remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+                        }
 
                         return (
                           <tr key={license.id} className="border-b border-slate-800">
@@ -2216,7 +2258,7 @@ export default function CoTermCalcPage() {
                                   }}
                                   autoFocus
                                   placeholder="Service name"
-                                  className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-sm w-full focus:outline-none focus:border-blue-500"
+                                  className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-slate-900 dark:text-slate-900 dark:text-white text-sm w-full focus:outline-none focus:border-blue-500"
                                 />
                               ) : (
                                 <div
@@ -2224,7 +2266,7 @@ export default function CoTermCalcPage() {
                                     if (!handleInteraction()) return;
                                     setEditingServiceId(license.id);
                                   }}
-                                  className="text-white cursor-pointer hover:text-blue-400 transition-colors px-2 py-1 min-h-[28px] flex items-start gap-2 group"
+                                  className="text-slate-900 dark:text-white cursor-pointer hover:text-blue-400 transition-colors px-2 py-1 min-h-[28px] flex items-start gap-2 group"
                                   title="Click to edit"
                                 >
                                   <span className="flex-1 break-words">
@@ -2247,7 +2289,7 @@ export default function CoTermCalcPage() {
                                   ));
                                 }}
                                 min="0"
-                                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-sm w-20 focus:outline-none focus:border-blue-500"
+                                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-slate-900 dark:text-slate-900 dark:text-white text-sm w-20 focus:outline-none focus:border-blue-500"
                               />
                             </td>
                             <td className="py-3 px-2">
@@ -2264,7 +2306,7 @@ export default function CoTermCalcPage() {
                                 }}
                                 min="0"
                                 step="0.01"
-                                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-sm w-24 focus:outline-none focus:border-blue-500"
+                                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-slate-900 dark:text-slate-900 dark:text-white text-sm w-24 focus:outline-none focus:border-blue-500"
                               />
                             </td>
                             <td className="py-3 px-2">
@@ -2279,7 +2321,7 @@ export default function CoTermCalcPage() {
                                     ));
                                   }}
                                   disabled={license.additionalLicenses === 0}
-                                  className={`px-2 py-1 rounded text-white text-xs transition-colors ${
+                                  className={`px-2 py-1 rounded text-slate-900 dark:text-white text-xs transition-colors ${
                                     license.additionalLicenses === 0
                                       ? 'bg-slate-800 cursor-not-allowed opacity-50'
                                       : 'bg-slate-700 hover:bg-slate-600'
@@ -2297,27 +2339,27 @@ export default function CoTermCalcPage() {
                                         : l
                                     ));
                                   }}
-                                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs transition-colors"
+                                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-slate-900 dark:text-white text-xs transition-colors"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </div>
                             </td>
-                            <td className="py-3 px-2 text-white">${currentCost.toFixed(2)}</td>
+                            <td className="py-3 px-2 text-slate-900 dark:text-white">${currentCost.toFixed(2)}</td>
                             <td className="py-3 px-2 text-blue-400">
                               {billingTerm === 'Monthly'
                                 ? `+$${additionalMonthlyCost.toFixed(2)}`
                                 : `$${coTermCost.toFixed(2)}`}
                             </td>
-                            <td className="py-3 px-2 text-white">${updatedCost.toFixed(2)}</td>
-                            <td className="py-3 px-2 text-white font-semibold">${remainingTotal.toFixed(2)}</td>
+                            <td className="py-3 px-2 text-slate-900 dark:text-white">${updatedCost.toFixed(2)}</td>
+                            <td className="py-3 px-2 text-slate-900 dark:text-white font-semibold">${remainingTotal.toFixed(2)}</td>
                             <td className="py-3 px-2">
                               <button
                                 onClick={() => {
                                   if (!handleInteraction()) return;
                                   setLicenses(licenses.filter(l => l.id !== license.id));
                                 }}
-                                className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-xs transition-colors"
+                                className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-slate-900 dark:text-white text-xs transition-colors"
                                 title="Delete line item"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -2326,12 +2368,12 @@ export default function CoTermCalcPage() {
                           </tr>
                         );
                       })}
-                      <tr className="bg-slate-800 font-bold">
-                        <td className="py-3 px-2 text-white">TOTAL</td>
-                        <td className="py-3 px-2 text-white">{licenses.reduce((sum, l) => sum + l.quantity, 0)}</td>
-                        <td className="py-3 px-2 text-white">${licenses.reduce((sum, l) => sum + l.annualCost, 0).toFixed(2)}</td>
-                        <td className="py-3 px-2 text-white">{licenses.reduce((sum, l) => sum + l.additionalLicenses, 0)}</td>
-                        <td className="py-3 px-2 text-white">
+                      <tr className="bg-slate-200 dark:bg-slate-800 font-bold">
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">TOTAL</td>
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">{licenses.reduce((sum, l) => sum + l.quantity, 0)}</td>
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">${licenses.reduce((sum, l) => sum + l.annualCost, 0).toFixed(2)}</td>
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">{licenses.reduce((sum, l) => sum + l.additionalLicenses, 0)}</td>
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">
                           ${billingTerm === 'Monthly'
                             ? results.currentMonthlyCost.toFixed(2)
                             : results.currentAnnualCost.toFixed(2)}
@@ -2339,14 +2381,32 @@ export default function CoTermCalcPage() {
                         <td className="py-3 px-2 text-blue-400">
                           {billingTerm === 'Monthly'
                             ? `+$${results.monthlyCostChange.toFixed(2)}`
-                            : `$${results.coTermCost.toFixed(2)}`}
+                            : `$${licenses.reduce((sum, l) => sum + calculateCoTermCost(l), 0).toFixed(2)}`}
                         </td>
-                        <td className="py-3 px-2 text-white">
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">
                           ${billingTerm === 'Monthly'
                             ? results.updatedMonthlyCost.toFixed(2)
                             : results.updatedAnnualCost.toFixed(2)}
                         </td>
-                        <td className="py-3 px-2 text-white">${results.remainingTotal.toFixed(2)}</td>
+                        <td className="py-3 px-2 text-slate-900 dark:text-white">
+                          ${licenses.reduce((sum, license) => {
+                            let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
+                            let remainingTotal;
+
+                            if (billingTerm === 'Annual') {
+                              // For Annual: current year (additional only) + remaining years (all licenses)
+                              const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+                              const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+                              const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+                              remainingTotal = currentYearCost + remainingYearsCost;
+                            } else {
+                              // For Monthly/Pre-Paid: standard calculation
+                              remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+                            }
+
+                            return sum + remainingTotal;
+                          }, 0).toFixed(2)}
+                        </td>
                         <td className="py-3 px-2"></td>
                       </tr>
                     </tbody>
@@ -2357,8 +2417,8 @@ export default function CoTermCalcPage() {
 
             {/* License Summary & Cost Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-slate-900 dark:text-white font-semibold mb-4 flex items-center gap-2">
                   <span className="text-purple-400">👥</span>
                   License Summary
                 </h3>
@@ -2366,7 +2426,7 @@ export default function CoTermCalcPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
                     <span className="text-slate-400">Current Licenses</span>
-                    <span className="text-2xl font-bold text-white">{licenses.reduce((sum, l) => sum + l.quantity, 0)}</span>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{licenses.reduce((sum, l) => sum + l.quantity, 0)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-blue-400">Additional Licenses</span>
@@ -2379,8 +2439,8 @@ export default function CoTermCalcPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                <h3 className="text-slate-900 dark:text-white font-semibold mb-4 flex items-center gap-2">
                   <span className="text-green-400">💲</span>
                   Cost Breakdown
                 </h3>
@@ -2388,13 +2448,13 @@ export default function CoTermCalcPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
                     <span className="text-slate-400">Current {billingTerm}</span>
-                    <span className="text-xl font-bold text-white">
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">
                       ${billingTerm === 'Monthly' ? results.currentMonthlyCost.toFixed(2) : results.currentAnnualCost.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-slate-400">New {billingTerm}</span>
-                    <span className="text-xl font-bold text-white">
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">
                       ${billingTerm === 'Monthly' ? results.updatedMonthlyCost.toFixed(2) : results.updatedAnnualCost.toFixed(2)}
                     </span>
                   </div>
@@ -2404,27 +2464,78 @@ export default function CoTermCalcPage() {
                       +${billingTerm === 'Monthly' ? results.monthlyCostChange.toFixed(2) : results.costChange.toFixed(2)}
                     </span>
                   </div>
+                  {billingTerm === 'Annual' && (
+                    <div className="flex justify-between items-center py-3 bg-blue-900/20 border border-blue-700 rounded-lg px-4">
+                      <div>
+                        <div className="text-blue-300 font-medium">Current Year Co-Term Cost</div>
+                        <div className="text-blue-400 text-xs">For {currentYearMonths.toFixed(2)} months (until year end)</div>
+                      </div>
+                      <span className="text-2xl font-bold text-blue-400">${results.coTermCost.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center py-3 bg-purple-900/20 border border-purple-700 rounded-lg px-4">
                     <div>
                       <div className="text-purple-300 font-medium">Remaining Term Total</div>
                       <div className="text-purple-400 text-xs">{monthsRemaining.toFixed(2)} months remaining</div>
                     </div>
-                    <span className="text-2xl font-bold text-purple-400">${results.remainingTotal.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-purple-400">
+                      ${licenses.reduce((sum, license) => {
+                        let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
+                        let remainingTotal;
+
+                        if (billingTerm === 'Annual') {
+                          // For Annual: current year (additional only) + remaining years (all licenses)
+                          const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+                          const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+                          const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+                          remainingTotal = currentYearCost + remainingYearsCost;
+                        } else {
+                          // For Monthly/Pre-Paid: standard calculation
+                          remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+                        }
+
+                        return sum + remainingTotal;
+                      }, 0).toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-3 bg-blue-900/30 border border-blue-700 rounded-lg px-4">
                     <div>
                       <div className="text-blue-300 font-medium">Total Cost of Ownership (TCO)</div>
                       <div className="text-blue-400 text-xs">{agreementTermMonths} month contract</div>
                     </div>
-                    <span className="text-2xl font-bold text-blue-400">${results.totalCostOfOwnership.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-blue-400">
+                      ${(() => {
+                        const tableRemainingTotal = licenses.reduce((sum, license) => {
+                          let monthlyRate = billingTerm === 'Monthly' ? license.annualCost : license.annualCost / 12;
+                          let remainingTotal;
+
+                          if (billingTerm === 'Annual') {
+                            const currentYearCost = monthlyRate * license.additionalLicenses * currentYearMonths;
+                            const remainingMonthsAfterCurrentYear = Math.floor(monthsRemaining - currentYearMonths);
+                            const remainingYearsCost = monthlyRate * (license.quantity + license.additionalLicenses) * remainingMonthsAfterCurrentYear;
+                            remainingTotal = currentYearCost + remainingYearsCost;
+                          } else {
+                            remainingTotal = (monthlyRate * (license.quantity + license.additionalLicenses)) * monthsRemaining;
+                          }
+
+                          return sum + remainingTotal;
+                        }, 0);
+
+                        const currentAnnualTotal = billingTerm === 'Monthly'
+                          ? results.currentMonthlyCost * 12
+                          : results.currentAnnualCost;
+
+                        return (currentAnnualTotal + tableRemainingTotal).toFixed(2);
+                      })()}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Cost Comparison Chart */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-8 border border-slate-700 shadow-2xl">
-              <h3 className="text-white font-bold text-xl mb-8">Cost Comparison</h3>
+            <div className="bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-xl p-8 border border-slate-300 dark:border-slate-700 shadow-2xl">
+              <h3 className="text-slate-900 dark:text-white font-bold text-xl mb-8">Cost Comparison</h3>
 
               <div className="relative flex">
                 {/* Y-Axis Scale */}
@@ -2559,7 +2670,7 @@ export default function CoTermCalcPage() {
 
                               {/* Value label on bar */}
                               <div className="absolute top-2 left-0 right-0 text-center">
-                                <div className="text-white font-bold text-sm drop-shadow-lg">
+                                <div className="text-slate-900 dark:text-white font-bold text-sm drop-shadow-lg">
                                   {formatCurrency(bar.value, true)}
                                 </div>
                               </div>
@@ -2568,7 +2679,7 @@ export default function CoTermCalcPage() {
 
                           {/* Bottom labels - Fixed position below bars */}
                           <div className="absolute text-center" style={{ top: '290px', width: '130px' }}>
-                            <div className="text-white font-bold text-base mb-1">
+                            <div className="text-slate-900 dark:text-white font-bold text-base mb-1">
                               {formatCurrency(bar.value, false)}
                             </div>
                             <div className="text-slate-400 text-xs leading-tight px-1" style={{ minHeight: '32px' }}>
@@ -2587,7 +2698,7 @@ export default function CoTermCalcPage() {
             {/* Export and Email Section */}
             <div className="space-y-6">
               {/* Logo Upload Section */}
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
                 <label className="block text-sm text-slate-400 mb-2">Company Logo (Optional)</label>
                 <div className="flex items-center gap-3">
                   {companyLogo ? (
@@ -2595,13 +2706,13 @@ export default function CoTermCalcPage() {
                       <img src={companyLogo} alt="Company Logo" className="h-16 w-auto border border-slate-600 rounded" />
                       <button
                         onClick={() => setCompanyLogo(null)}
-                        className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                        className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-slate-900 dark:text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
                       >
                         ×
                       </button>
                     </div>
                   ) : (
-                    <label className="cursor-pointer px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-white text-sm transition-colors">
+                    <label className="cursor-pointer px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm transition-colors">
                       <input
                         type="file"
                         accept="image/*"
@@ -2619,7 +2730,7 @@ export default function CoTermCalcPage() {
                 <button
                   onClick={generatePDF}
                   disabled={isGeneratingPDF}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-slate-900 dark:text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FileText className="h-5 w-5" />
                   {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF Report'}
@@ -2628,7 +2739,7 @@ export default function CoTermCalcPage() {
                 <button
                   onClick={generateEmailContent}
                   disabled={isGeneratingEmail}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-slate-900 dark:text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Mail className="h-5 w-5" />
                   {isGeneratingEmail ? 'Generating Email...' : 'Generate Email'}
@@ -2637,8 +2748,8 @@ export default function CoTermCalcPage() {
 
               {/* Email Preview Section */}
               {generatedEmail && (
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                  <h3 className="text-slate-900 dark:text-white font-semibold mb-4 flex items-center gap-2">
                     <Mail className="h-5 w-5 text-green-400" />
                     Email Preview
                   </h3>
@@ -2650,7 +2761,7 @@ export default function CoTermCalcPage() {
                   />
                   <button
                     onClick={copyEmailToClipboard}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
                   >
                     <Download className="h-5 w-5" />
                     Copy to Clipboard
@@ -2668,14 +2779,14 @@ export default function CoTermCalcPage() {
             disabled={currentStep === 1}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
               currentStep === 1
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                : 'bg-slate-700 hover:bg-slate-600 text-white'
+                ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                : 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white'
             }`}
           >
             ← Previous
           </button>
 
-          <div className="text-slate-400 text-sm">
+          <div className="dark:text-slate-400 text-slate-600 text-sm">
             Step {currentStep} of 3
           </div>
 
@@ -2683,14 +2794,14 @@ export default function CoTermCalcPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleSaveCalculation}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
               >
                 <Save className="h-5 w-5" />
                 Save Calculation
               </button>
               <button
                 onClick={handleStartOver}
-                className="flex items-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition-colors"
               >
                 <RefreshCw className="h-5 w-5" />
                 Start Over
@@ -2701,8 +2812,8 @@ export default function CoTermCalcPage() {
               onClick={nextStep}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
                 currentStep === 2
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-green-600 hover:bg-green-700 text-slate-900 dark:text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-slate-900 dark:text-white'
               }`}
             >
               {currentStep === 2 ? 'Calculate' : 'Next'} →
@@ -2725,23 +2836,22 @@ export default function CoTermCalcPage() {
         />
 
         {/* Right Panel - AI Assistant */}
-        <aside style={{
+        <aside className="dark:bg-[#0a0d14] bg-white" style={{
           width: isMobile ? '0px' : `${rightWidth}px`,
           borderLeft: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
-          background: "#0a0d14",
           overflow: "hidden",
         }}>
           <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-            <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+            <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", fontWeight: "600", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
               <span>💬</span>
               Ask AI Assistant
             </h3>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column" }}>
             {chatMessages.length === 0 ? (
-              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
+              <p className="dark:text-slate-400 text-slate-600" style={{ fontSize: "13px", marginBottom: "16px", lineHeight: 1.5 }}>
                 Ask questions about co-terming, licensing calculations, or request changes to your calculator. For example: "Add a new license called License 1 with monthly cost of $100 and add 2 additional licenses"
               </p>
             ) : (
@@ -2749,24 +2859,25 @@ export default function CoTermCalcPage() {
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
+                    className={msg.role === 'user' ? 'dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200' : 'dark:bg-blue-500/10 bg-blue-50 dark:border-blue-500/30 border-blue-200'}
                     style={{
                       marginBottom: "12px",
                       padding: "12px",
                       borderRadius: "8px",
-                      background: msg.role === 'user' ? "rgba(168, 85, 247, 0.1)" : "rgba(59, 130, 246, 0.1)",
-                      border: `1px solid ${msg.role === 'user' ? "rgba(168, 85, 247, 0.3)" : "rgba(59, 130, 246, 0.3)"}`,
+                      borderWidth: "1px",
+                      borderStyle: "solid"
                     }}
                   >
-                    <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "4px", fontWeight: "600" }}>
+                    <div className={msg.role === 'user' ? 'dark:text-slate-400 text-slate-600' : 'dark:text-blue-400 text-blue-600'} style={{ fontSize: "11px", marginBottom: "4px", fontWeight: "600" }}>
                       {msg.role === 'user' ? 'You' : 'AI Assistant'}
                     </div>
-                    <div style={{ fontSize: "13px", color: "#e2e8f0", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    <div className="dark:text-slate-200 text-slate-900" style={{ fontSize: "13px", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                       {msg.content.replace(/\{[\s\S]*"actions"[\s\S]*\}/, '').trim() || msg.content}
                     </div>
                   </div>
                 ))}
                 {isLoadingChat && (
-                  <div style={{ padding: "12px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>
+                  <div className="dark:text-slate-400 text-slate-600" style={{ padding: "12px", textAlign: "center", fontSize: "13px" }}>
                     Thinking...
                   </div>
                 )}
@@ -2783,14 +2894,14 @@ export default function CoTermCalcPage() {
                   }
                 }}
                 placeholder="e.g., Add a license called License 1 with monthly cost $100"
+                className="dark:bg-black/30 bg-slate-100 dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder-slate-500 placeholder-slate-400"
                 style={{
                   width: "100%",
                   minHeight: "100px",
                   padding: "12px",
                   borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  background: "rgba(0,0,0,0.3)",
-                  color: "#e2e8f0",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
                   fontSize: "14px",
                   fontFamily: "inherit",
                   resize: "vertical",
@@ -2800,16 +2911,17 @@ export default function CoTermCalcPage() {
               <button
                 onClick={handleSendMessage}
                 disabled={!chatInput.trim() || isLoadingChat}
+                className={!chatInput.trim() || isLoadingChat ? 'dark:bg-white/10 bg-slate-200 dark:text-slate-500 text-slate-400' : ''}
                 style={{
                   width: "100%",
                   padding: "10px 16px",
                   borderRadius: "8px",
                   border: "none",
-                  background: chatInput.trim() && !isLoadingChat ? "linear-gradient(135deg, #a855f7, #9333ea)" : "rgba(255,255,255,0.1)",
-                  color: chatInput.trim() && !isLoadingChat ? "#fff" : "#64748b",
+                  background: chatInput.trim() && !isLoadingChat ? "linear-gradient(135deg, #a855f7, #9333ea)" : undefined,
+                  color: chatInput.trim() && !isLoadingChat ? "#fff" : undefined,
                   fontSize: "14px",
                   fontWeight: "600",
-                  cursor: chatInput.trim() && !isLoadingChat ? "pointer" : "default",
+                  cursor: chatInput.trim() && !isLoadingChat ? "pointer" : "not-allowed",
                   transition: "all 0.2s",
                   fontFamily: "inherit"
                 }}

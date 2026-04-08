@@ -120,8 +120,8 @@ export default function Home() {
             Each tool is designed to simplify complex IT decisions with intuitive interfaces and AI-powered insights.
           </p>
 
-          {/* MSP Assessment Explainer */}
-          <div className="mb-16">
+          {/* MSP Assessment Explainer - Hidden for now */}
+          {/* <div className="mb-16">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -170,7 +170,7 @@ export default function Home() {
                 />
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* AI Solutions Architect Explainer */}
           <div className="mb-16">
@@ -313,13 +313,14 @@ export default function Home() {
             Get data-driven insights in minutes, not weeks. All tools are free to use.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            <Link
+            {/* MSP Assessment - Hidden for now */}
+            {/* <Link
               href="/assessment"
               className="inline-flex items-center justify-center gap-2 bg-emerald-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-emerald-400 transition-colors"
             >
               MSP Assessment
               <ArrowRight className="h-5 w-5" />
-            </Link>
+            </Link> */}
             <Link
               href="/ai-solutions"
               className="inline-flex items-center justify-center gap-2 bg-blue-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-400 transition-colors"

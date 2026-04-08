@@ -63,7 +63,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [savedDesigns, setSavedDesigns] = useState<SavedDesign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'designs' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [editingCustomerData, setEditingCustomerData] = useState(false);
@@ -338,7 +338,7 @@ export default function AccountPage() {
         period: '/month',
         features: ['Solution Architect', 'Co-Term Calculator', 'Priority support']
       },
-      'all-in': {
+      all_in: {
         name: 'All-In',
         color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
         gradient: 'from-purple-600 to-purple-700',
@@ -431,19 +431,6 @@ export default function AccountPage() {
             >
               Overview
               {activeTab === 'overview' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 dark:bg-emerald-500" />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('designs')}
-              className={`pb-4 px-2 font-medium transition-colors relative ${
-                activeTab === 'designs'
-                  ? 'text-emerald-600 dark:text-emerald-500'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Saved Designs ({savedDesigns.length})
-              {activeTab === 'designs' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 dark:bg-emerald-500" />
               )}
             </button>
@@ -868,105 +855,6 @@ export default function AccountPage() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Saved Designs Tab */}
-        {activeTab === 'designs' && (
-          <div>
-            {savedDesigns.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-12 text-center">
-                <FileText className="h-16 w-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No saved designs yet</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
-                  Start creating solutions with our AI builders and they'll appear here
-                </p>
-                <Link
-                  href="/ai-solutions"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all"
-                >
-                  <Wrench className="h-5 w-5" />
-                  Start Building
-                </Link>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {savedDesigns.map((design) => (
-                  <div
-                    key={design.id}
-                    className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 uppercase">
-                          {getDesignTypeName(design.design_type)}
-                        </span>
-                        {editingId === design.id ? (
-                          <div className="mt-1 flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveRename(design.id);
-                                if (e.key === 'Escape') cancelRename();
-                              }}
-                              className="flex-1 px-2 py-1 text-lg font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-2 border-emerald-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => saveRename(design.id)}
-                              className="p-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-500 rounded transition-colors"
-                              title="Save"
-                            >
-                              <Check className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={cancelRename}
-                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded transition-colors"
-                              title="Cancel"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="mt-1 flex items-center gap-2 group">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                              {design.title}
-                            </h3>
-                            <button
-                              onClick={() => startRename(design)}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 rounded transition-all"
-                              title="Rename"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                      Updated {new Date(design.updated_at).toLocaleDateString()}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleOpenDesign(design)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Open
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDesign(design.id)}
-                        className="px-4 py-2 border-2 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

@@ -5,6 +5,7 @@ import { Save, Trash2, MessageSquare, Send, ArrowRight, Sparkles, Check, Menu, X
 import { SiteHeader } from '@/components/site-header';
 import { PaywallModal } from '@/components/paywall-modal';
 import { useFeatureAccess } from '@/hooks/use-feature-access';
+import NavMenu from '@/components/nav-menu';
 
 interface SavedAssessment {
   id: string;
@@ -137,13 +138,12 @@ function MultiSelect({ options, selected, onChange }: any) {
         return (
           <button
             key={label}
+            className={`${isSelected ? 'dark:bg-emerald-500/15 bg-emerald-100 dark:text-slate-200 text-slate-900' : 'dark:bg-white/5 bg-slate-50 dark:text-slate-400 text-slate-700'} dark:border-white/10 border-slate-200 hover:dark:bg-white/10 hover:bg-slate-100`}
             onClick={() => toggle(label)}
             style={{
               padding: desc ? "14px 18px" : "14px 18px",
               borderRadius: "10px",
-              border: isSelected ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.06)",
-              background: isSelected ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
-              color: isSelected ? "#e2e8f0" : "#94a3b8",
+              border: isSelected ? "2px solid #10b981" : "2px solid",
               fontSize: "14px",
               cursor: "pointer",
               textAlign: "left",
@@ -157,7 +157,7 @@ function MultiSelect({ options, selected, onChange }: any) {
           >
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: "500", marginBottom: desc ? "4px" : 0 }}>{label}</div>
-              {desc && <div style={{ fontSize: "12px", opacity: 0.7, lineHeight: 1.4 }}>{desc}</div>}
+              {desc && <div className="dark:opacity-70 opacity-60" style={{ fontSize: "12px", lineHeight: 1.4 }}>{desc}</div>}
             </div>
             {isSelected && <CheckIcon />}
           </button>
@@ -206,6 +206,47 @@ export default function AssessmentPage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Load solution from saved solutions page
+  useEffect(() => {
+    const loadSolution = async () => {
+      const loadSolutionId = localStorage.getItem('loadSolutionId');
+      if (!loadSolutionId) return;
+
+      try {
+        // Fetch the specific solution
+        const response = await fetch('/api/get-designs');
+        if (response.ok) {
+          const data = await response.json();
+          const solution = data.designs?.find((d: any) => d.id === loadSolutionId);
+
+          if (solution && solution.design_type === 'assessment') {
+            // Populate form data
+            if (solution.design_data) {
+              setFormData(solution.design_data);
+              // Advance to appropriate step if assessment type is set
+              if (solution.design_data.assessment_type) {
+                setCurrentStep(1);
+              }
+            }
+
+            // Set AI response if available
+            if (solution.ai_response) {
+              setApiResult(solution.ai_response);
+              setShowResult(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading assessment:', error);
+      } finally {
+        // Clear the localStorage item
+        localStorage.removeItem('loadSolutionId');
+      }
+    };
+
+    loadSolution();
   }, []);
 
   // Determine which field set to use based on assessment type
@@ -541,7 +582,7 @@ export default function AssessmentPage() {
   };
 
   return (
-    <div className="bg-slate-950 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="bg-slate-50 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <SiteHeader />
 
       <style>{`
@@ -621,99 +662,29 @@ export default function AssessmentPage() {
         </div>
       )}
 
-      <div style={{
+      <div className="dark:bg-[#0c0f18] bg-slate-100 dark:text-slate-200 text-slate-900" style={{
         flex: 1,
-        background: "#0c0f18",
-        color: "#e2e8f0",
         fontFamily: "'Outfit', sans-serif",
         display: "flex",
         overflow: "hidden",
         position: 'relative',
       }}>
-        {/* Left Panel - Saved Assessments */}
-        <aside style={{
+        {/* Left Panel - Navigation Menu */}
+        <aside className="dark:bg-[#0a0d14] bg-white" style={{
           width: isMobile ? '0px' : `${leftWidth}px`,
           borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
-          background: "#0a0d14",
           overflow: "hidden",
         }}>
           <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <h2 style={{ fontSize: "14px", fontWeight: "600", color: "#e2e8f0", marginBottom: "12px" }}>
-              Saved Assessments
+            <h2 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>
+              TrueITCost
             </h2>
-            <button
-              onClick={handleSaveAssessment}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'linear-gradient(to right, rgb(16,185,129), rgb(5,150,105))',
-                color: 'white',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: "500",
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-            >
-              <Save size={14} />
-              Save Current
-            </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-            {savedAssessments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: '#475569' }}>
-                <p style={{ fontSize: '13px' }}>No saved assessments yet</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {savedAssessments.map((assessment) => (
-                  <div
-                    key={assessment.id}
-                    style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      position: 'relative',
-                    }}
-                    onClick={() => handleLoadAssessment(assessment)}
-                  >
-                    <div style={{ fontSize: '13px', fontWeight: "500", color: '#e2e8f0', marginBottom: '4px' }}>
-                      {assessment.title}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>
-                      {new Date(assessment.date).toLocaleDateString()}
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAssessment(assessment.id);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        padding: '4px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#64748b',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <NavMenu />
           </div>
         </aside>
 
@@ -746,8 +717,8 @@ export default function AssessmentPage() {
                   animation: "spin 1s linear infinite"
                 }} />
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px", color: "#e2e8f0" }}>Analyzing your MSP needs...</p>
-                  <p style={{ fontSize: "14px", color: "#64748b", animation: "pulse 2s ease infinite" }}>
+                  <p className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: "500", marginBottom: "8px" }}>Analyzing your MSP needs...</p>
+                  <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "14px", animation: "pulse 2s ease infinite" }}>
                     Evaluating requirements, comparing options, calculating ROI
                   </p>
                 </div>
@@ -759,11 +730,11 @@ export default function AssessmentPage() {
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 12px", borderRadius: "20px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", marginBottom: "16px", fontSize: "12px", color: "#10b981" }}>
                     <SparkIcon /> MSP Assessment
                   </div>
-                  <h1 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: "700", lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "12px" }}>
+                  <h1 className="dark:text-white text-slate-900" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: "700", lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "12px" }}>
                     Find the right MSP fit<br />
                     <span style={{ background: "linear-gradient(135deg, #10b981, #059669)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>in minutes, not weeks</span>
                   </h1>
-                  <p style={{ fontSize: "15px", color: "#64748b", maxWidth: "520px", margin: "0 auto", lineHeight: 1.5 }}>
+                  <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "15px", maxWidth: "520px", margin: "0 auto", lineHeight: 1.5 }}>
                     Answer a few quick questions and get a personalized assessment of your MSP needs.
                   </p>
                 </div>
@@ -772,14 +743,14 @@ export default function AssessmentPage() {
                 {currentStep > 0 && (
                   <div style={{ marginBottom: "32px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <p style={{ fontSize: "12px", color: "#64748b" }}>
+                      <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "12px" }}>
                         Question {currentStep + 1} of {effectiveTotalSteps}
                       </p>
                       <p style={{ fontSize: "12px", color: "#10b981", fontWeight: "500" }}>
                         {Math.round(progress)}% Complete
                       </p>
                     </div>
-                    <div style={{ height: "6px", background: "rgba(255,255,255,0.05)", borderRadius: "10px", overflow: "hidden" }}>
+                    <div className="dark:bg-white/5 bg-slate-200" style={{ height: "6px", borderRadius: "10px", overflow: "hidden" }}>
                       <div style={{ height: "100%", background: "linear-gradient(90deg, #10b981, #059669)", width: `${progress}%`, transition: "width 0.3s ease", borderRadius: "10px" }} />
                     </div>
                   </div>
@@ -787,12 +758,12 @@ export default function AssessmentPage() {
 
                 {/* Question Card */}
                 {currentField && (
-                  <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", padding: "32px", marginBottom: "24px", animation: "slideUp 0.5s ease" }}>
-                    <h2 style={{ fontSize: "20px", fontWeight: "600", marginBottom: currentField.description ? "12px" : "24px", color: "#e2e8f0" }}>
+                  <div className="dark:bg-white/5 bg-white dark:border-white/10 border-slate-200" style={{ borderRadius: "16px", padding: "32px", marginBottom: "24px", animation: "slideUp 0.5s ease", borderWidth: "1px", borderStyle: "solid" }}>
+                    <h2 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "20px", fontWeight: "600", marginBottom: currentField.description ? "12px" : "24px" }}>
                       {currentField.label}
                     </h2>
                     {currentField.description && (
-                      <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "24px", lineHeight: "1.6" }}>
+                      <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "14px", marginBottom: "24px", lineHeight: "1.6" }}>
                         {currentField.description}
                       </p>
                     )}
@@ -806,7 +777,7 @@ export default function AssessmentPage() {
                           return (
                             <button
                               key={label}
-                              className="opt-btn"
+                              className={`opt-btn ${isSelected ? 'dark:bg-emerald-500/15 bg-emerald-100 dark:text-slate-200 text-slate-900' : 'dark:bg-white/5 bg-slate-50 dark:text-slate-400 text-slate-600'} dark:border-white/10 border-slate-200 hover:dark:bg-white/10 hover:bg-slate-100`}
                               onClick={() => {
                                 handleFieldChange(currentField.id, label);
                                 // Always auto-advance except when we know it's truly the last step
@@ -818,9 +789,7 @@ export default function AssessmentPage() {
                               style={{
                                 padding: "20px 24px",
                                 borderRadius: "12px",
-                                border: isSelected ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.06)",
-                                background: isSelected ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
-                                color: isSelected ? "#e2e8f0" : "#94a3b8",
+                                border: isSelected ? "2px solid #10b981" : "2px solid",
                                 fontSize: "15px",
                                 cursor: "pointer",
                                 textAlign: "left",
@@ -832,12 +801,12 @@ export default function AssessmentPage() {
                                 gap: "8px"
                               }}
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: "600", fontSize: "16px", color: isSelected ? "#e2e8f0" : "#e2e8f0" }}>
+                              <div className={isSelected ? 'dark:text-slate-200 text-slate-900' : 'dark:text-slate-200 text-slate-900'} style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: "600", fontSize: "16px" }}>
                                 {isSelected && <CheckIcon />}
                                 {label}
                               </div>
                               {description && (
-                                <div style={{ fontSize: "14px", color: isSelected ? "rgba(226,232,240,0.8)" : "#94a3b8", lineHeight: "1.5" }}>
+                                <div className={isSelected ? 'dark:text-slate-300 text-slate-700' : 'dark:text-slate-400 text-slate-600'} style={{ fontSize: "14px", lineHeight: "1.5" }}>
                                   {description}
                                 </div>
                               )}
@@ -852,7 +821,7 @@ export default function AssessmentPage() {
                         {(currentField.options as string[]).map(opt => (
                           <button
                             key={opt}
-                            className="opt-btn"
+                            className={`opt-btn ${formData[currentField.id] === opt ? 'dark:bg-emerald-500/15 bg-emerald-100 dark:text-slate-200 text-slate-900' : 'dark:bg-white/5 bg-slate-50 dark:text-slate-400 text-slate-700'} dark:border-white/10 border-slate-200 hover:dark:bg-white/10 hover:bg-slate-100`}
                             onClick={() => {
                               handleFieldChange(currentField.id, opt);
                               // Always auto-advance except when we know it's truly the last step
@@ -864,9 +833,7 @@ export default function AssessmentPage() {
                             style={{
                               padding: "14px 18px",
                               borderRadius: "10px",
-                              border: formData[currentField.id] === opt ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.06)",
-                              background: formData[currentField.id] === opt ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
-                              color: formData[currentField.id] === opt ? "#e2e8f0" : "#94a3b8",
+                              border: formData[currentField.id] === opt ? "2px solid #10b981" : "2px solid",
                               fontSize: "14px",
                               cursor: "pointer",
                               textAlign: "left",
@@ -891,7 +858,7 @@ export default function AssessmentPage() {
                           selected={formData[currentField.id] || []}
                           onChange={(val: any) => handleFieldChange(currentField.id, val)}
                         />
-                        <p style={{ fontSize: "12px", color: "#475569", marginTop: "12px" }}>Select all that apply</p>
+                        <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "12px", marginTop: "12px" }}>Select all that apply</p>
                       </div>
                     )}
 
@@ -901,14 +868,15 @@ export default function AssessmentPage() {
                         value={formData[currentField.id] || ""}
                         onChange={(e) => handleFieldChange(currentField.id, e.target.value)}
                         placeholder={currentField.placeholder}
+                        className="dark:bg-white/5 bg-white dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder-slate-500 placeholder-slate-400"
                         style={{
                           width: "100%", padding: "14px 18px", borderRadius: "10px",
-                          border: "2px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)",
-                          color: "#e2e8f0", fontSize: "15px", outline: "none", fontFamily: "inherit",
+                          borderWidth: "2px", borderStyle: "solid",
+                          fontSize: "15px", outline: "none", fontFamily: "inherit",
                           transition: "border-color 0.2s"
                         }}
                         onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = "#10b981"}
-                        onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = "rgba(255,255,255,0.08)"}
+                        onBlur={(e) => (e.target as HTMLInputElement).classList.contains('dark') ? (e.target as HTMLInputElement).style.borderColor = "rgba(255,255,255,0.08)" : (e.target as HTMLInputElement).style.borderColor = "rgb(203 213 225)"}
                       />
                     )}
 
@@ -1331,18 +1299,17 @@ export default function AssessmentPage() {
         )}
 
         {/* Right Panel - Chat */}
-        <aside style={{
+        <aside className="dark:bg-[#0a0d14] bg-white" style={{
           width: isMobile ? '0px' : `${rightWidth}px`,
           borderLeft: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
-          background: "#0a0d14",
           overflow: "hidden",
         }}>
           <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageSquare size={18} style={{ color: '#10b981' }} />
-              <h2 style={{ fontSize: '14px', fontWeight: "600", color: '#e2e8f0' }}>AI Assistant</h2>
+              <h2 className="dark:text-slate-200 text-slate-900" style={{ fontSize: '14px', fontWeight: "600" }}>AI Assistant</h2>
             </div>
           </div>
 
@@ -1351,11 +1318,11 @@ export default function AssessmentPage() {
               <div style={{ padding: '16px 0' }}>
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                   <MessageSquare size={32} style={{ margin: '0 auto 8px', opacity: 0.5, color: '#10b981' }} />
-                  <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>AI MSP Assistant</p>
-                  <p style={{ fontSize: '12px', color: '#475569' }}>Ask me anything about MSPs</p>
+                  <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: '13px', marginBottom: '4px' }}>AI MSP Assistant</p>
+                  <p className="dark:text-slate-600 text-slate-500" style={{ fontSize: '12px' }}>Ask me anything about MSPs</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <p style={{ fontSize: '11px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Suggested Questions:</p>
+                  <p className="dark:text-slate-600 text-slate-500" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Suggested Questions:</p>
                   {[
                     'What does an MSP provide me that I don\'t have now?',
                     'What should I look for in an MSP contract?',
@@ -1364,6 +1331,7 @@ export default function AssessmentPage() {
                   ].map((question, idx) => (
                     <button
                       key={idx}
+                      className="dark:bg-white/5 bg-slate-50 dark:border-white/10 border-slate-200 dark:text-slate-400 text-slate-700 dark:hover:bg-emerald-500/10 hover:bg-emerald-50 dark:hover:border-emerald-500/30 hover:border-emerald-300 dark:hover:text-emerald-400 hover:text-emerald-700"
                       onClick={() => {
                         setChatInput(question);
                         setTimeout(() => handleSendChat(), 100);
@@ -1371,24 +1339,13 @@ export default function AssessmentPage() {
                       style={{
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        background: 'rgba(255,255,255,0.02)',
-                        color: '#94a3b8',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
                         fontSize: '12px',
                         cursor: 'pointer',
                         textAlign: 'left',
                         transition: 'all 0.2s',
                         fontFamily: 'inherit'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(16,185,129,0.1)';
-                        e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)';
-                        e.currentTarget.style.color = '#10b981';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                        e.currentTarget.style.color = '#94a3b8';
                       }}
                     >
                       {question}
@@ -1400,19 +1357,19 @@ export default function AssessmentPage() {
               chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
+                  className={msg.role === 'user' ? 'dark:bg-white/5 bg-slate-50 dark:border-white/10 border-slate-200 dark:text-slate-200 text-slate-900' : 'dark:bg-emerald-500/10 bg-emerald-50 dark:border-emerald-500/30 border-emerald-200 dark:text-slate-200 text-slate-900'}
                   style={{
                     padding: '12px 14px',
                     borderRadius: '8px',
-                    background: msg.role === 'user' ? 'rgba(255,255,255,0.02)' : 'rgba(16,185,129,0.1)',
-                    border: `1px solid ${msg.role === 'user' ? 'rgba(255,255,255,0.06)' : 'rgba(16,185,129,0.3)'}`,
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
                     fontSize: '13px',
-                    color: msg.role === 'user' ? '#e2e8f0' : '#e2e8f0',
                     lineHeight: '1.6',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '11px', color: msg.role === 'user' ? '#64748b' : '#10b981', fontWeight: "600", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div className={msg.role === 'user' ? 'dark:text-slate-500 text-slate-600' : 'text-emerald-600 dark:text-emerald-400'} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '11px', fontWeight: "600", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {msg.role === 'user' ? 'You' : 'AI Assistant'}
                   </div>
                   {msg.content}
@@ -1420,7 +1377,7 @@ export default function AssessmentPage() {
               ))
             )}
             {isSendingChat && (
-              <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', fontSize: '13px', color: '#64748b' }}>
+              <div className="dark:bg-emerald-500/10 bg-emerald-50 dark:border-emerald-500/30 border-emerald-200 dark:text-slate-500 text-slate-600" style={{ padding: '12px', borderRadius: '8px', borderWidth: '1px', borderStyle: 'solid', fontSize: '13px' }}>
                 Thinking...
               </div>
             )}
@@ -1434,13 +1391,13 @@ export default function AssessmentPage() {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
                 placeholder="Ask a question..."
+                className="dark:bg-white/5 bg-white dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder-slate-500 placeholder-slate-400"
                 style={{
                   flex: 1,
                   padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
                   borderRadius: '8px',
-                  color: '#e2e8f0',
                   fontSize: '13px',
                   outline: 'none',
                 }}
@@ -1448,9 +1405,10 @@ export default function AssessmentPage() {
               <button
                 onClick={handleSendChat}
                 disabled={!chatInput.trim() || isSendingChat}
+                className={chatInput.trim() && !isSendingChat ? '' : 'dark:bg-white/5 bg-slate-200'}
                 style={{
                   padding: '10px 16px',
-                  background: chatInput.trim() && !isSendingChat ? 'linear-gradient(to right, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
+                  background: chatInput.trim() && !isSendingChat ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
                   color: 'white',
                   borderRadius: '8px',
                   border: 'none',

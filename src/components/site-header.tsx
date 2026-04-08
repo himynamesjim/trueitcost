@@ -13,7 +13,12 @@ import { getUser, getUserProfile } from '@/lib/auth/actions';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+}
+
+export function SiteHeader({ onMenuClick, showMenuButton = false }: SiteHeaderProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -88,6 +93,17 @@ export function SiteHeader() {
       <TrialBanner />
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          {/* Mobile Menu Button */}
+          {showMenuButton && (
+            <button
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <Menu className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+            </button>
+          )}
+
           {/* Logo */}
           <Link href="/" className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
             <Image
@@ -104,12 +120,20 @@ export function SiteHeader() {
           <div className="hidden lg:flex items-center gap-6 flex-1 justify-end">
             <nav className="flex items-center gap-1">
               <Link
+                href="/"
+                className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Home</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Back to main page</div>
+              </Link>
+              {/* MSP Assessment - Hidden for now */}
+              {/* <Link
                 href="/assessment"
                 className="px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
               >
                 <div className="font-medium text-slate-700 dark:text-slate-300">MSP Assessment</div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Evaluate MSP value & ROI</div>
-              </Link>
+              </Link> */}
               <Link
                 href="/ai-solutions"
                 onClick={handleAISolutionsClick}
@@ -182,13 +206,22 @@ export function SiteHeader() {
           <div className="lg:hidden border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
             <nav className="px-4 py-4 space-y-2">
               <Link
+                href="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-700 dark:text-slate-300">Home</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Back to main page</div>
+              </Link>
+              {/* MSP Assessment - Hidden for now */}
+              {/* <Link
                 href="/assessment"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <div className="font-medium text-slate-700 dark:text-slate-300">MSP Assessment</div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Evaluate MSP value & ROI</div>
-              </Link>
+              </Link> */}
               <Link
                 href="/ai-solutions"
                 onClick={(e) => {

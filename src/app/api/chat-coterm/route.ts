@@ -89,14 +89,47 @@ export async function POST(request: NextRequest) {
       contextText += `Agreement Term: ${calculatorState.agreementTermMonths} months\n`;
       contextText += `Co-Term Start Date: ${calculatorState.coTermStartDate}\n`;
       contextText += `Billing Term: ${calculatorState.billingTerm}\n`;
+      contextText += `Months Remaining: ${calculatorState.monthsRemaining}\n`;
+
+      if (calculatorState.billingTerm === 'Annual' && calculatorState.currentYearMonths) {
+        contextText += `Current Year Months Remaining: ${calculatorState.currentYearMonths}\n`;
+      }
+
       contextText += `\nCurrent Licenses:\n`;
 
       if (calculatorState.licenses && calculatorState.licenses.length > 0) {
         calculatorState.licenses.forEach((license: any, index: number) => {
-          contextText += `${index + 1}. "${license.serviceDescription || 'Unnamed'}" (ID: ${license.id}) - Qty: ${license.quantity}, Monthly Cost: $${license.annualCost}, Additional Co-Term: ${license.additionalLicenses}\n`;
+          const costLabel = calculatorState.billingTerm === 'Monthly' ? 'Monthly Cost' : 'Annual Cost';
+          contextText += `${index + 1}. "${license.serviceDescription || 'Unnamed'}" (ID: ${license.id}) - Qty: ${license.quantity}, ${costLabel}: $${license.annualCost}, Additional Co-Term: ${license.additionalLicenses}\n`;
         });
       } else {
         contextText += 'No licenses added yet\n';
+      }
+
+      // Add calculated results
+      if (calculatorState.results) {
+        contextText += `\n**CALCULATED RESULTS (USE THESE EXACT VALUES IN YOUR RESPONSE):**\n`;
+
+        if (calculatorState.billingTerm === 'Monthly') {
+          contextText += `Current Monthly Cost: $${calculatorState.results.currentMonthlyCost.toFixed(2)}\n`;
+          contextText += `Updated Monthly Cost: $${calculatorState.results.updatedMonthlyCost.toFixed(2)}\n`;
+          contextText += `Monthly Cost Change: +$${calculatorState.results.monthlyCostChange.toFixed(2)}\n`;
+        } else if (calculatorState.billingTerm === 'Annual') {
+          contextText += `Current Annual Cost: $${calculatorState.results.currentAnnualCost.toFixed(2)}\n`;
+          contextText += `Updated Annual Cost: $${calculatorState.results.updatedAnnualCost.toFixed(2)}\n`;
+          contextText += `Annual Cost Change: +$${calculatorState.results.costChange.toFixed(2)}\n`;
+          if (calculatorState.results.coTermCost !== null) {
+            contextText += `Current Year Co-Term Cost: $${calculatorState.results.coTermCost.toFixed(2)} (for ${calculatorState.currentYearMonths} months until year end)\n`;
+          }
+        } else {
+          contextText += `Current Annual Cost: $${calculatorState.results.currentAnnualCost.toFixed(2)}\n`;
+          contextText += `Updated Annual Cost: $${calculatorState.results.updatedAnnualCost.toFixed(2)}\n`;
+          contextText += `Cost Change: +$${calculatorState.results.costChange.toFixed(2)}\n`;
+        }
+
+        contextText += `Remaining Term Total: $${calculatorState.results.remainingTotal.toFixed(2)} (${calculatorState.monthsRemaining} months remaining)\n`;
+        contextText += `Total Cost of Ownership (TCO): $${calculatorState.results.totalCostOfOwnership.toFixed(2)} (${calculatorState.agreementTermMonths} month contract)\n`;
+        contextText += `\nIMPORTANT: Use these exact calculated values in your email. Do not recalculate them.\n`;
       }
     }
 

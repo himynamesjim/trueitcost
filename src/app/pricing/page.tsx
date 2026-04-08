@@ -34,9 +34,9 @@ export default function PricingPage() {
       name: 'Builder',
       monthlyPrice: 4.99,
       annualPrice: 47.90, // 20% off (4.99 * 12 * 0.8)
-      description: 'Perfect for focused project planning',
+      description: 'Perfect for solution design',
       builders: [
-        'Choose any 1 builder of your choice',
+        'AI Solutions Architect',
       ],
       features: [
         'Unlimited designs',
@@ -51,11 +51,11 @@ export default function PricingPage() {
     },
     {
       name: 'Professional',
-      monthlyPrice: 9.99,
-      annualPrice: 95.90, // 20% off (9.99 * 12 * 0.8)
+      monthlyPrice: 8.99,
+      annualPrice: 86.30, // 20% off (8.99 * 12 * 0.8)
       description: 'For MSPs and IT professionals',
       builders: [
-        'AI Solutions Architect builder',
+        'AI Solutions Architect',
         'Co-Term Calculator',
       ],
       features: [
@@ -69,30 +69,6 @@ export default function PricingPage() {
       popular: true,
       gradient: 'from-emerald-600 to-emerald-700',
       badgeColor: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
-    },
-    {
-      name: 'All-In',
-      monthlyPrice: 14.99,
-      annualPrice: 143.90, // 20% off (14.99 * 12 * 0.8)
-      description: 'Complete access to everything',
-      builders: [
-        'All builders (unlimited access)',
-        'AI Solutions Architect',
-        'Co-Term Calculator',
-        'IT Assessment wizard',
-      ],
-      features: [
-        'Unlimited designs',
-        'PDF export',
-        'Email generation',
-        'AI-powered recommendations',
-        'Priority support',
-        'Early access to new features',
-      ],
-      cta: 'Start Free Trial',
-      popular: false,
-      gradient: 'from-purple-600 to-purple-700',
-      badgeColor: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
     },
   ];
 
@@ -166,7 +142,7 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.name}

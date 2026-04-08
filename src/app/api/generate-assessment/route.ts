@@ -155,6 +155,17 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await res.json();
+
+    // Remove ** markdown bold formatting from all text content
+    if (data.content && Array.isArray(data.content)) {
+      data.content = data.content.map((item: any) => {
+        if (item.type === 'text' && item.text) {
+          item.text = item.text.replace(/\*\*/g, '');
+        }
+        return item;
+      });
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Assessment generation error:', error);

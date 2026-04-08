@@ -67,7 +67,10 @@ CATEGORY RULES:
 [Collaboration & Video] AV solutions for conference rooms and huddle spaces.
 - Follow AVIXA best practices for display sizing, audio, and camera placement.
 
-IMPORTANT: Base your recommendation ONLY on the category provided in the form data. Do NOT recommend conference room AV equipment for UCaaS, networking, or other non-AV categories.
+IMPORTANT:
+- Base your recommendation ONLY on the category provided in the form data. Do NOT recommend conference room AV equipment for UCaaS, networking, or other non-AV categories.
+- DO NOT use markdown bold formatting with ** in your responses. Use plain text only.
+- Avoid using asterisks for emphasis. Use clear language instead.
 
 FOR UCaaS & Voice, Network Infrastructure, AND Data Center & Cloud, use this JSON schema with 3 tiers.
 Cost field definitions:
@@ -151,6 +154,17 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await res.json();
+
+    // Remove ** markdown bold formatting from all text content
+    if (data.content && Array.isArray(data.content)) {
+      data.content = data.content.map((item: any) => {
+        if (item.type === 'text' && item.text) {
+          item.text = item.text.replace(/\*\*/g, '');
+        }
+        return item;
+      });
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Design generation error:', error);

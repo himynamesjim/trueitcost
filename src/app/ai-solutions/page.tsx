@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { SiteHeader } from '@/components/site-header';
 import { PaywallModal } from '@/components/paywall-modal';
 import { useFeatureAccess } from '@/hooks/use-feature-access';
+import NavMenu from '@/components/nav-menu';
 
 interface Field {
   id: string;
@@ -835,6 +836,14 @@ const CATEGORIES: Category[] = [
       { id: "budget_compliance", label: "Monthly budget", type: "select", options: ["Under $500/mo", "$500-1,500/mo", "$1,500-3,000/mo", "$3,000-5,000/mo", "$5,000-10,000/mo", "$10,000+/mo", "Need guidance"] },
       { id: "notes", label: "Additional context", type: "textarea", placeholder: "Audit findings, specific regulations, deadlines..." },
     ],
+  },
+  {
+    id: "custom",
+    icon: "✨",
+    title: "Custom Solution",
+    subtitle: "Describe any IT project and get a custom solution",
+    color: "#f59e0b",
+    fields: []
   }
 ];
 
@@ -1028,7 +1037,9 @@ export default function AISolutionsArchitect() {
   const [modificationRequest, setModificationRequest] = useState<string>('');
   const [isModifying, setIsModifying] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+  const [isSendingChat, setIsSendingChat] = useState<boolean>(false);
   const [savedSolutions, setSavedSolutions] = useState<any[]>([]);
+  const [refreshSolutions, setRefreshSolutions] = useState<number>(0); // Trigger to refresh saved solutions
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [currentDesignId, setCurrentDesignId] = useState<string | null>(null); // Track database design ID
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1057,6 +1068,68 @@ export default function AISolutionsArchitect() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Load solution from saved solutions page
+  useEffect(() => {
+    const loadSolution = async () => {
+      const loadSolutionId = localStorage.getItem('loadSolutionId');
+      if (!loadSolutionId) return;
+
+      console.log('Loading solution from saved solutions:', loadSolutionId);
+
+      try {
+        // Fetch the specific solution
+        const response = await fetch('/api/get-designs');
+        if (response.ok) {
+          const data = await response.json();
+          const solution = data.designs?.find((d: any) => d.id === loadSolutionId);
+
+          if (solution) {
+            console.log('Found solution to load:', solution);
+
+            // Set the category (design_type maps to category ID like 'ucaas', 'assessment', etc.)
+            setSelectedCategory(solution.design_type);
+
+            // Populate form data
+            if (solution.design_data) {
+              setFormData(solution.design_data);
+            }
+
+            // Set AI response if available
+            if (solution.ai_response) {
+              setApiResult(solution.ai_response);
+              setShowResult(true);
+            }
+
+            // IMPORTANT: Set BOTH design ID and session ID to prevent creating duplicates
+            // - currentDesignId prevents database duplicates
+            // - currentSessionId prevents local "Auto-saved" duplicates
+            setCurrentDesignId(solution.id);
+            setCurrentSessionId(solution.id);
+
+            // Also set the selected tier if available
+            if (solution.design_data?.selectedTier !== undefined) {
+              setSelectedTier(solution.design_data.selectedTier);
+            }
+
+            // Switch to configure view to show the loaded solution
+            setView('configure');
+
+            console.log('Solution loaded successfully, currentDesignId and currentSessionId set to:', solution.id);
+          } else {
+            console.error('Solution not found with ID:', loadSolutionId);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading solution:', error);
+      } finally {
+        // Clear the localStorage item
+        localStorage.removeItem('loadSolutionId');
+      }
+    };
+
+    loadSolution();
   }, []);
 
   const category = CATEGORIES.find(c => c.id === selectedCategory);
@@ -1327,8 +1400,13 @@ Respond ONLY with valid JSON, no markdown, no backticks:
     setRoomImages([]);
     setRoomAnalysis(null);
 
+    // For custom solution, go directly to configure view (will show custom chat UI)
+    if (catId === 'custom') {
+      setShowUploadChoice(false);
+      setView('configure');
+    }
     // For collaboration, show upload choice first
-    if (catId === 'collaboration') {
+    else if (catId === 'collaboration') {
       setShowUploadChoice(true);
       setView('configure');
     } else {
@@ -1539,7 +1617,8 @@ Respond ONLY with valid JSON, no markdown, no backticks:
     const fetchSavedDesigns = async () => {
       try {
         // Build URL with category filter if we're in a specific category
-        const url = selectedCategory
+        // Exception: for 'custom' category, show all solutions
+        const url = (selectedCategory && selectedCategory !== 'custom')
           ? `/api/get-designs?design_type=${selectedCategory}`
           : '/api/get-designs';
 
@@ -1581,7 +1660,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
     };
 
     fetchSavedDesigns();
-  }, [selectedCategory]); // Re-fetch when category changes
+  }, [selectedCategory, refreshSolutions]); // Re-fetch when category changes or refresh triggered
 
   useEffect(() => {
     // Don't auto-save if no category selected or formData is empty
@@ -1673,6 +1752,124 @@ Respond ONLY with valid JSON, no markdown, no backticks:
       }
     };
   }, [formData, selectedCategory, apiResult, currentSessionId, currentDesignId, selectedTier, currentStep]);
+
+  const handleGeneralChat = async () => {
+    if (!modificationRequest.trim() || isSendingChat) return;
+
+    const userMessage = modificationRequest.trim();
+
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setModificationRequest('');
+    setIsSendingChat(true);
+
+    try {
+      const res = await fetch('/api/chat-solutions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userMessage,
+          messages: chatMessages
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to get response from AI');
+      }
+
+      const data = await res.json();
+
+      // Add assistant response to chat
+      const newChatMessages = [...chatMessages, { role: 'user', content: userMessage }, { role: 'assistant', content: data.message }];
+      setChatMessages(newChatMessages);
+
+      // For custom solutions, store the latest AI response
+      // but don't show result view yet - keep chat centered
+      if (selectedCategory === 'custom') {
+        // Always update/store the latest response
+        setApiResult({
+          title: chatMessages.length === 0
+            ? userMessage.substring(0, 100) + (userMessage.length > 100 ? '...' : '')
+            : apiResult?.title || 'Custom Solution',
+          summary: data.message,
+          conversation: newChatMessages
+        });
+
+        // Only update result view if already showing
+        if (showResult) {
+          // This handles modifications after solution is complete
+        }
+      }
+
+      // Auto-save custom solution to database for logged-in users
+      if (selectedCategory === 'custom' && category) {
+        try {
+          // Create a title from the first user message (truncate if too long)
+          const title = chatMessages.length === 0
+            ? userMessage.substring(0, 100) + (userMessage.length > 100 ? '...' : '')
+            : chatMessages[0].content.substring(0, 100);
+
+          const solutionData = {
+            title,
+            conversation: newChatMessages,
+            timestamp: new Date().toISOString()
+          };
+
+          if (currentDesignId) {
+            // Update existing design
+            await fetch('/api/update-design', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                design_id: currentDesignId,
+                design_data: {
+                  category: category.title,
+                  conversation: newChatMessages,
+                  isComplete: true
+                },
+                ai_response: solutionData
+              })
+            });
+          } else {
+            // Create new design
+            const saveRes = await fetch('/api/save-design', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                design_type: 'custom',
+                design_data: {
+                  category: category.title,
+                  conversation: newChatMessages,
+                  isComplete: true
+                },
+                ai_response: solutionData
+              })
+            });
+
+            if (saveRes.ok) {
+              const saveData = await saveRes.json();
+              setCurrentDesignId(saveData.design.id);
+              console.log('Custom solution saved:', saveData.title);
+
+              // Reload saved solutions to show the new one
+              setRefreshSolutions(prev => prev + 1);
+            }
+          }
+        } catch (saveErr) {
+          console.error('Failed to auto-save custom solution:', saveErr);
+          // Don't show error to user, just log it
+        }
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      }]);
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
 
   const handleSaveSolution = () => {
     if (!apiResult || !category) return;
@@ -1879,13 +2076,11 @@ Respond ONLY with valid JSON, no markdown, no backticks:
   if (view === 'home') {
     return (
       <>
-      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="bg-slate-50 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
-        <div style={{
+        <div className="dark:bg-[#0c0f18] bg-slate-100 dark:text-slate-200 text-slate-900" style={{
           flex: 1,
-          background: "#0c0f18",
-          color: "#e2e8f0",
           fontFamily: "'Outfit', sans-serif",
           display: "flex",
           overflow: "hidden",
@@ -1967,219 +2162,22 @@ Respond ONLY with valid JSON, no markdown, no backticks:
             </div>
           )}
 
-          {/* Left Panel - Saved Solutions */}
-          <aside style={{
+          {/* Left Panel - Navigation Menu */}
+          <aside className="dark:bg-[#0a0d14] bg-white" style={{
             width: isMobile ? '0px' : `${leftWidth}px`,
             borderRight: isMobile ? 'none' : "1px solid rgba(255,255,255,0.06)",
             display: isMobile ? 'none' : 'flex',
             flexDirection: "column",
-            background: "#0a0d14",
             height: "100%",
             overflow: "hidden",
           }}>
             <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>💾</span>
-                Saved Solutions
+              <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>
+                TrueITCost
               </h3>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px", minHeight: 0 }}>
-              {savedSolutions.length === 0 ? (
-                <div style={{ padding: "24px 12px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
-                  No saved solutions yet.<br/>Complete a wizard to save a solution.
-                </div>
-              ) : (
-                savedSolutions.map(solution => (
-                  <div
-                    key={solution.id}
-                    style={{
-                      padding: "12px",
-                      marginBottom: "8px",
-                      borderRadius: "8px",
-                      border: `1px solid ${solution.categoryColor}30`,
-                      background: `${solution.categoryColor}08`,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${solution.categoryColor}15`;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `${solution.categoryColor}08`;
-                    }}
-                  >
-                    {/* Status Badge */}
-                    {(solution.isComplete === false || (!solution.result && solution.formData && Object.keys(solution.formData).length > 0)) && (
-                      <div style={{ marginBottom: "6px" }}>
-                        <span style={{
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "rgba(251,191,36,0.15)",
-                          color: "#fbbf24",
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          In Progress
-                        </span>
-                      </div>
-                    )}
-                    {(solution.isComplete !== false && solution.result) && (
-                      <div style={{ marginBottom: "6px" }}>
-                        <span style={{
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: "rgba(34,197,94,0.15)",
-                          color: "#22c55e",
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                        }}>
-                          Complete
-                        </span>
-                      </div>
-                    )}
-                    {/* Title Row */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "16px" }}>{solution.categoryIcon}</span>
-                      {editingDesignId === solution.id ? (
-                        <>
-                          <input
-                            type="text"
-                            value={editingDesignTitle}
-                            onChange={(e) => setEditingDesignTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveRenameDesign(solution.id);
-                              if (e.key === 'Escape') cancelRenameDesign();
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              flex: 1,
-                              padding: "4px 6px",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              color: "#e2e8f0",
-                              background: "rgba(255,255,255,0.05)",
-                              border: `1px solid ${solution.categoryColor}`,
-                              borderRadius: "4px",
-                              outline: "none",
-                              fontFamily: "inherit",
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              saveRenameDesign(solution.id);
-                            }}
-                            style={{
-                              padding: "4px 6px",
-                              borderRadius: "4px",
-                              border: "none",
-                              background: `${solution.categoryColor}20`,
-                              color: solution.categoryColor,
-                              fontSize: "11px",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              cancelRenameDesign();
-                            }}
-                            style={{
-                              padding: "4px 6px",
-                              borderRadius: "4px",
-                              border: "none",
-                              background: "rgba(148,163,184,0.1)",
-                              color: "#94a3b8",
-                              fontSize: "11px",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span style={{ fontSize: "13px", fontWeight: 600, color: "#e2e8f0", flex: 1 }}>{solution.category}</span>
-                          {solution.isFromDatabase && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startRenameDesign(solution);
-                              }}
-                              style={{
-                                padding: "4px 6px",
-                                borderRadius: "4px",
-                                border: "none",
-                                background: "rgba(148,163,184,0.1)",
-                                color: "#94a3b8",
-                                fontSize: "11px",
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                                opacity: 0.6,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.opacity = "1";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.opacity = "0.6";
-                              }}
-                            >
-                              ✎
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSolution(solution.id);
-                            }}
-                            style={{
-                              padding: "4px 6px",
-                              borderRadius: "4px",
-                              border: "none",
-                              background: "rgba(239,68,68,0.1)",
-                              color: "#f87171",
-                              fontSize: "11px",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px" }}>
-                      {new Date(solution.timestamp).toLocaleDateString()} {new Date(solution.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <button
-                      onClick={() => handleLoadSolution(solution)}
-                      style={{
-                        width: "100%",
-                        padding: "6px 10px",
-                        borderRadius: "6px",
-                        border: `1px solid ${solution.categoryColor}40`,
-                        background: `${solution.categoryColor}10`,
-                        color: solution.categoryColor,
-                        fontSize: "12px",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Load Solution
-                    </button>
-                  </div>
-                ))
-              )}
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              <NavMenu />
             </div>
           </aside>
 
@@ -2219,23 +2217,23 @@ Respond ONLY with valid JSON, no markdown, no backticks:
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 12px", borderRadius: "20px", background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.2)", marginBottom: "16px", fontSize: "12px", color: "#38bdf8" }}>
                 <SparkIcon /> AI-Powered Solutions Architecture
               </div>
-              <h1 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "12px" }}>
+              <h1 className="dark:text-white text-slate-900" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.03em", marginBottom: "12px" }}>
                 Design your IT solution<br />
                 <span style={{ background: "linear-gradient(135deg, #0ea5e9, #8b5cf6, #ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>in minutes, not weeks</span>
               </h1>
-              <p style={{ fontSize: "15px", color: "#64748b", maxWidth: "520px", margin: "0 auto", lineHeight: 1.5 }}>
+              <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "15px", maxWidth: "520px", margin: "0 auto", lineHeight: 1.5 }}>
                 Tell us what you need. Our AI architect will design a complete, vendor-neutral solution with real pricing — no sales calls required.
               </p>
             </div>
 
             {/* Category Grid */}
             <div>
-              <h2 style={{ fontSize: "12px", fontWeight: 500, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both", textAlign: "center" }}>Choose your project type</h2>
+              <h2 className="dark:text-slate-600 text-slate-500" style={{ fontSize: "12px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px", fontFamily: "'DM Mono', monospace", animation: "slideUp 0.8s ease 0.1s both", textAlign: "center" }}>Choose your project type</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", maxWidth: "700px", margin: "0 auto" }}>
                 {CATEGORIES.map((cat, i) => (
                   <div
                     key={cat.id}
-                    className="cat-card"
+                    className="cat-card dark:bg-white/5 bg-white dark:border-white/10 border-slate-200"
                     onClick={() => handleCategorySelect(cat.id)}
                     style={{
                       // @ts-ignore
@@ -2243,8 +2241,8 @@ Respond ONLY with valid JSON, no markdown, no backticks:
                       "--glow": cat.color + "20",
                       padding: "24px",
                       borderRadius: "12px",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      background: "rgba(255,255,255,0.02)",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
                       cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
                       display: "flex",
@@ -2263,12 +2261,12 @@ Respond ONLY with valid JSON, no markdown, no backticks:
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <h3 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>{cat.title}</h3>
-                        <span className="cat-arrow" style={{ color: "#475569", opacity: 0, transition: "all 0.3s" }}>
+                        <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: 600, marginBottom: "4px" }}>{cat.title}</h3>
+                        <span className="cat-arrow dark:text-slate-600 text-slate-400" style={{ opacity: 0, transition: "all 0.3s" }}>
                           <ArrowRight />
                         </span>
                       </div>
-                      <p style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.5 }}>{cat.subtitle}</p>
+                      <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "14px", lineHeight: 1.5 }}>{cat.subtitle}</p>
                     </div>
                   </div>
                 ))}
@@ -2298,73 +2296,99 @@ Respond ONLY with valid JSON, no markdown, no backticks:
           )}
 
           {/* Right Panel - Chat */}
-          <aside style={{
+          <aside className="dark:bg-[#0a0d14] bg-white" style={{
             width: isMobile ? '0px' : `${rightWidth}px`,
             borderLeft: "1px solid rgba(255,255,255,0.06)",
             display: isMobile ? 'none' : 'flex',
             flexDirection: "column",
-            background: "#0a0d14",
             height: "100%",
             overflow: "hidden",
           }}>
             <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                 <span>💬</span>
                 Ask AI Architect
               </h3>
             </div>
-            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column" }}>
-              <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "16px", lineHeight: 1.5 }}>
-                Ask any questions about your IT infrastructure needs, or start by selecting a project type above.
-              </p>
-              <textarea
-                value={modificationRequest}
-                onChange={(e) => setModificationRequest(e.target.value)}
-                placeholder="e.g., I need a complete UCaaS solution for 50 users with Microsoft Teams integration, or What's the best firewall for a small office?"
-                style={{
-                  width: "100%",
-                  flex: "1",
-                  minHeight: "200px",
-                  maxHeight: "calc(100vh - 350px)",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  background: "rgba(0,0,0,0.3)",
-                  color: "#e2e8f0",
-                  fontSize: "14px",
-                  fontFamily: "inherit",
-                  resize: "none",
-                  marginBottom: "16px",
-                  overflowY: "auto",
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.ctrlKey) {
-                    // Handle chat request
-                  }
-                }}
-              />
-              <button
-                onClick={() => {
-                  // Handle chat request
-                  alert("Chat functionality coming soon! For now, please select a project type above to get started.");
-                }}
-                disabled={!modificationRequest.trim()}
-                style={{
-                  width: "100%",
-                  padding: "12px 20px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: modificationRequest.trim() ? "linear-gradient(135deg, #0ea5e9, #8b5cf6)" : "rgba(255,255,255,0.1)",
-                  color: modificationRequest.trim() ? "#fff" : "#64748b",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: modificationRequest.trim() ? "pointer" : "not-allowed",
-                  fontFamily: "inherit",
-                  flexShrink: 0,
-                }}
-              >
-                Ask AI Architect
-              </button>
+            <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              {chatMessages.length === 0 ? (
+                <p className="dark:text-slate-400 text-slate-600" style={{ fontSize: "13px", marginBottom: "16px", lineHeight: 1.5 }}>
+                  Ask any questions about your IT infrastructure needs, or start by selecting a project type above.
+                </p>
+              ) : (
+                <div style={{ flex: 1, overflowY: "auto", marginBottom: "16px" }}>
+                  {chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={msg.role === 'user' ? 'dark:bg-blue-500/10 bg-blue-50 dark:border-blue-500/30 border-blue-200' : 'dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200'}
+                      style={{
+                        marginBottom: "12px",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        borderWidth: "1px",
+                        borderStyle: "solid"
+                      }}
+                    >
+                      <div className={msg.role === 'user' ? 'dark:text-blue-400 text-blue-600' : 'dark:text-purple-400 text-purple-600'} style={{ fontSize: "11px", marginBottom: "4px", fontWeight: "600" }}>
+                        {msg.role === 'user' ? 'You' : 'AI Architect'}
+                      </div>
+                      <div className="dark:text-slate-200 text-slate-900" style={{ fontSize: "13px", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isSendingChat && (
+                    <div className="dark:text-slate-400 text-slate-600" style={{ padding: "12px", textAlign: "center", fontSize: "13px" }}>
+                      Thinking...
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{ marginTop: "auto" }}>
+                <textarea
+                  value={modificationRequest}
+                  onChange={(e) => setModificationRequest(e.target.value)}
+                  placeholder="e.g., I need a complete UCaaS solution for 50 users with Microsoft Teams integration, or What's the best firewall for a small office?"
+                  className="dark:bg-black/30 bg-slate-100 dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder-slate-500 placeholder-slate-400"
+                  style={{
+                    width: "100%",
+                    minHeight: "100px",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                    fontSize: "14px",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    marginBottom: "12px",
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      handleGeneralChat();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleGeneralChat}
+                  disabled={!modificationRequest.trim() || isSendingChat}
+                  className={!modificationRequest.trim() || isSendingChat ? 'dark:bg-white/10 bg-slate-200 dark:text-slate-500 text-slate-400' : ''}
+                  style={{
+                    width: "100%",
+                    padding: "12px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: modificationRequest.trim() && !isSendingChat ? "linear-gradient(135deg, #0ea5e9, #8b5cf6)" : undefined,
+                    color: modificationRequest.trim() && !isSendingChat ? "#fff" : undefined,
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    cursor: modificationRequest.trim() && !isSendingChat ? "pointer" : "not-allowed",
+                    fontFamily: "inherit",
+                    flexShrink: 0,
+                  }}
+                >
+                  {isSendingChat ? 'Sending...' : 'Ask AI Architect'}
+                </button>
+              </div>
             </div>
           </aside>
 
@@ -2562,7 +2586,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
   // CONFIGURE VIEW - UPLOAD CHOICE (Collaboration only)
   if (view === 'configure' && !showResult && category && showUploadChoice && category.id === 'collaboration') {
     return (
-      <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <SiteHeader />
         <div style={{
           height: "calc(100vh - 52px)",
@@ -2838,8 +2862,209 @@ Respond ONLY with valid JSON, no markdown, no backticks:
 
   // CONFIGURE VIEW
   if (view === 'configure' && !showResult && category) {
+    // Special chat interface for custom solutions with left sidebar
+    if (category.id === 'custom') {
+      return (
+        <div className="bg-slate-50 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <SiteHeader />
+
+          <div className="dark:bg-[#0c0f18] bg-slate-100" style={{ flex: 1, display: "flex", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+            {/* Left Panel - Navigation Menu */}
+            <aside className="dark:bg-[#0a0d14] bg-white" style={{
+              width: `${leftWidth}px`,
+              borderRight: "1px solid rgba(255,255,255,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}>
+              <div className="dark:border-white/[0.06] border-slate-200" style={{ padding: "20px 16px", borderBottom: "1px solid", flexShrink: 0 }}>
+                <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>
+                  TrueITCost
+                </h3>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                <NavMenu />
+              </div>
+            </aside>
+
+            {/* Resize Handle - Left */}
+            {!isMobile && (
+            <div
+              onMouseDown={handleResizeLeft}
+              style={{
+                width: "4px",
+                cursor: "col-resize",
+                background: "transparent",
+                position: "relative",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            />
+            )}
+
+            {/* Main Content - Chat Area */}
+            <div className="dark:text-slate-200 text-slate-900" style={{ flex: 1, display: "flex", flexDirection: "column", padding: "20px", overflow: "hidden" }}>
+              {/* Header */}
+              <div style={{ marginBottom: "20px" }}>
+                <h2 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "24px", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span>✨</span>
+                  Custom AI Solution Builder
+                </h2>
+                <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "14px", marginTop: "8px" }}>
+                  Describe your IT project needs and get a custom solution generated by AI
+                </p>
+              </div>
+
+              {/* Chat Area */}
+              <div className="dark:bg-[#0a0d14] bg-white dark:border-white/[0.06] border-slate-200" style={{ flex: 1, display: "flex", flexDirection: "column", borderRadius: "12px", border: "1px solid", overflow: "hidden" }}>
+                {/* Messages */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+                  {chatMessages.length === 0 && !isSendingChat ? (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ fontSize: "48px" }}>💬</div>
+                      <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "16px", textAlign: "center", maxWidth: "500px", lineHeight: 1.6 }}>
+                        Start by describing your IT project. For example:<br/>
+                        "I need to set up a modern conference room for 15 people"<br/>
+                        "Help me design a backup and disaster recovery solution"<br/>
+                        "I want to migrate 50 users to the cloud"
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {chatMessages.map((msg, idx) => (
+                        <div
+                          key={idx}
+                          className={msg.role === 'user' ? 'dark:bg-blue-500/10 bg-blue-50 dark:border-blue-500/30 border-blue-200' : 'dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200'}
+                          style={{
+                            marginBottom: "16px",
+                            padding: "16px",
+                            borderRadius: "12px",
+                            border: "1px solid",
+                          }}
+                        >
+                          <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "12px", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase" }}>
+                            {msg.role === 'user' ? 'You' : 'AI Architect'}
+                          </div>
+                          <div className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {msg.content}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Thinking indicator */}
+                      {isSendingChat && (
+                        <div
+                          className="dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200"
+                          style={{
+                            marginBottom: "16px",
+                            padding: "16px",
+                            borderRadius: "12px",
+                            border: "1px solid",
+                          }}
+                        >
+                          <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "12px", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase" }}>
+                            AI Architect
+                          </div>
+                          <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "14px", lineHeight: 1.6, display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out infinite" }} />
+                              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out 0.2s infinite" }} />
+                              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out 0.4s infinite" }} />
+                            </div>
+                            <span>Thinking...</span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Input Area */}
+                <div className="dark:border-white/[0.06] border-slate-200" style={{ borderTop: "1px solid", padding: "20px" }}>
+                  {/* Show "View Solution" button if there's at least one AI response */}
+                  {chatMessages.length > 0 && chatMessages.some(m => m.role === 'assistant') && (
+                    <div style={{ marginBottom: "16px", display: "flex", justifyContent: "center" }}>
+                      <button
+                        onClick={() => setShowResult(true)}
+                        style={{
+                          padding: "12px 32px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: "linear-gradient(135deg, #10b981, #059669)",
+                          color: "#fff",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span>✓</span>
+                        View Solution
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <textarea
+                      value={modificationRequest}
+                      onChange={(e) => setModificationRequest(e.target.value)}
+                      placeholder="Describe your IT project or ask a question..."
+                      className="dark:bg-white/5 bg-white dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder:text-slate-500 placeholder:text-slate-500"
+                      style={{
+                        flex: 1,
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "14px",
+                        fontFamily: "inherit",
+                        resize: "none",
+                        minHeight: "80px",
+                        outline: "none",
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleGeneralChat();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleGeneralChat}
+                      disabled={!modificationRequest.trim() || isSendingChat}
+                      style={{
+                        padding: "12px 24px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: isSendingChat ? "rgba(139,92,246,0.5)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                        color: "#fff",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        cursor: isSendingChat ? "not-allowed" : "pointer",
+                        fontFamily: "inherit",
+                        alignSelf: "flex-end",
+                      }}
+                    >
+                      {isSendingChat ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="bg-slate-950 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="bg-slate-50 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <SiteHeader />
 
         <style>{`
@@ -3255,7 +3480,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
             overflow: "hidden",
           }}>
             <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
-              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#e2e8f0", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                 <span>💬</span>
                 Ask AI Architect
               </h3>
@@ -3327,9 +3552,258 @@ Respond ONLY with valid JSON, no markdown, no backticks:
 
   // RESULT VIEW
   if (view === 'configure' && showResult && category) {
+    // Special result view for custom solutions
+    if (category.id === 'custom') {
+      return (
+        <div className="bg-slate-50 dark:bg-slate-950" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <SiteHeader />
+
+          <div className="dark:bg-[#0c0f18] bg-slate-100" style={{ flex: 1, display: "flex", fontFamily: "'Outfit', sans-serif", overflow: "hidden" }}>
+            {/* Left Panel - Saved Solutions */}
+            <aside className="dark:bg-[#0a0d14] bg-white" style={{
+              width: `${leftWidth}px`,
+              borderRight: "1px solid rgba(255,255,255,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}>
+              <div className="dark:border-white/[0.06] border-slate-200" style={{ padding: "20px 16px", borderBottom: "1px solid", flexShrink: 0 }}>
+                <button
+                  onClick={() => { setView('home'); setSelectedCategory(null); setShowResult(false); setApiResult(null); setChatMessages([]); }}
+                  className="dark:border-white/10 border-slate-300 dark:text-slate-400 text-slate-600 dark:hover:bg-white/5 hover:bg-slate-100"
+                  style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid", background: "transparent", cursor: "pointer", fontSize: "13px", fontFamily: "inherit", marginBottom: "12px", width: "100%" }}
+                >
+                  ← Back to Categories
+                </button>
+                <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+                  <span>💾</span>
+                  Saved Solutions
+                </h3>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", padding: "12px", minHeight: 0 }}>
+                {savedSolutions.length === 0 ? (
+                  <div className="dark:text-slate-500 text-slate-600" style={{ padding: "24px 12px", textAlign: "center", fontSize: "13px" }}>
+                    No saved solutions yet.<br/>Complete a wizard to save a solution.
+                  </div>
+                ) : (
+                  savedSolutions.map(solution => (
+                    <div
+                      key={solution.id}
+                      style={{
+                        padding: "12px",
+                        marginBottom: "8px",
+                        borderRadius: "8px",
+                        border: `1px solid ${solution.categoryColor}30`,
+                        background: `${solution.categoryColor}08`,
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = `${solution.categoryColor}15`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = `${solution.categoryColor}08`;
+                      }}
+                      onClick={() => loadSavedSolution(solution)}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "16px" }}>{solution.categoryIcon}</span>
+                        <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: solution.categoryColor }}>
+                          {solution.category}
+                        </div>
+                      </div>
+                      <div className="dark:text-slate-500 text-slate-600" style={{ fontSize: "11px", marginBottom: "6px" }}>
+                        {solution.timestamp ? new Date(solution.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No date'}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </aside>
+
+            {/* Resize Handle - Left */}
+            {!isMobile && (
+            <div
+              onMouseDown={handleResizeLeft}
+              style={{
+                width: "4px",
+                cursor: "col-resize",
+                background: "transparent",
+                position: "relative",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            />
+            )}
+
+            {/* Main Content - Solution Display */}
+            <div className="dark:text-slate-200 text-slate-900" style={{ flex: 1, display: "flex", flexDirection: "column", padding: "20px", overflow: "auto" }}>
+              {/* Header */}
+              <div style={{ marginBottom: "24px" }}>
+                <h1 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "28px", fontWeight: 700, margin: 0, marginBottom: "8px" }}>
+                  {apiResult?.title || 'Custom Solution'}
+                </h1>
+                <p className="dark:text-slate-500 text-slate-600" style={{ fontSize: "14px", margin: 0 }}>
+                  AI-generated solution for your IT project
+                </p>
+              </div>
+
+              {/* Solution Content */}
+              <div className="dark:bg-[#0a0d14] bg-white dark:border-white/[0.06] border-slate-200" style={{ padding: "24px", borderRadius: "12px", border: "1px solid", marginBottom: "20px" }}>
+                <div className="dark:text-slate-300 text-slate-700" style={{ fontSize: "15px", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+                  {apiResult?.summary || ''}
+                </div>
+              </div>
+            </div>
+
+            {/* Resize Handle - Right */}
+            {!isMobile && (
+            <div
+              onMouseDown={handleResizeRight}
+              style={{
+                width: "4px",
+                cursor: "col-resize",
+                background: "transparent",
+                position: "relative",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            />
+            )}
+
+            {/* Right Panel - Chat for modifications */}
+            <aside className="dark:bg-[#0a0d14] bg-white" style={{
+              width: isMobile ? '0px' : `${rightWidth}px`,
+              borderLeft: "1px solid rgba(255,255,255,0.06)",
+              display: isMobile ? 'none' : 'flex',
+              flexDirection: "column",
+              height: "100%",
+              overflow: "hidden",
+            }}>
+              <div className="dark:border-white/[0.06] border-slate-200" style={{ padding: "20px 16px", borderBottom: "1px solid", flexShrink: 0 }}>
+                <h3 className="dark:text-slate-200 text-slate-900" style={{ fontSize: "14px", fontWeight: 600, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>💬</span>
+                  Modify Solution
+                </h3>
+              </div>
+              <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <p className="dark:text-slate-400 text-slate-600" style={{ fontSize: "13px", marginBottom: "16px", lineHeight: 1.5 }}>
+                  Ask questions or request modifications to your solution.
+                </p>
+
+                {/* Chat messages */}
+                <div style={{ flex: 1, overflowY: "auto", marginBottom: "16px" }}>
+                  {chatMessages.slice(1).map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={msg.role === 'user' ? 'dark:bg-blue-500/10 bg-blue-50 dark:border-blue-500/30 border-blue-200' : 'dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200'}
+                      style={{
+                        marginBottom: "12px",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                      }}
+                    >
+                      <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "11px", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase" }}>
+                        {msg.role === 'user' ? 'You' : 'AI'}
+                      </div>
+                      <div className="dark:text-slate-300 text-slate-800" style={{ fontSize: "13px", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Thinking indicator */}
+                  {isSendingChat && (
+                    <div
+                      className="dark:bg-purple-500/10 bg-purple-50 dark:border-purple-500/30 border-purple-200"
+                      style={{
+                        marginBottom: "12px",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                      }}
+                    >
+                      <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "11px", marginBottom: "6px", fontWeight: 600, textTransform: "uppercase" }}>
+                        AI
+                      </div>
+                      <div className="dark:text-slate-400 text-slate-600" style={{ fontSize: "13px", lineHeight: 1.5, display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ display: "flex", gap: "4px" }}>
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out infinite" }} />
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out 0.2s infinite" }} />
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "currentColor", animation: "pulse 1.4s ease-in-out 0.4s infinite" }} />
+                        </div>
+                        <span>Thinking...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input */}
+                <div>
+                  <textarea
+                    value={modificationRequest}
+                    onChange={(e) => setModificationRequest(e.target.value)}
+                    placeholder="Ask a question or request changes..."
+                    className="dark:bg-white/5 bg-white dark:border-white/10 border-slate-300 dark:text-slate-200 text-slate-900 dark:placeholder:text-slate-500 placeholder:text-slate-500"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid",
+                      fontSize: "13px",
+                      fontFamily: "inherit",
+                      resize: "none",
+                      minHeight: "80px",
+                      outline: "none",
+                      marginBottom: "8px",
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleGeneralChat();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleGeneralChat}
+                    disabled={!modificationRequest.trim() || isSendingChat}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: isSendingChat ? "rgba(139,92,246,0.5)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                      color: "#fff",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: isSendingChat ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {isSendingChat ? 'Sending...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      );
+    }
+
     const rec = apiResult;
     return (
-      <div className="bg-slate-950 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="bg-slate-50 dark:bg-slate-950" style={{ height: "calc(100vh - 52px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <SiteHeader />
 
         <div style={{
