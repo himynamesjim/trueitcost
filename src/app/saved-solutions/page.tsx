@@ -443,7 +443,7 @@ export default function SavedSolutionsPage() {
                     }
 
                     if (hardwareCost) {
-                      if (costInfo) {
+                      if (costInfo && 'hardware' in costInfo) {
                         costInfo.hardware = hardwareCost;
                       } else {
                         costInfo = {

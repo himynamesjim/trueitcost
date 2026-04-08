@@ -1780,7 +1780,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
       const data = await res.json();
 
       // Add assistant response to chat
-      const newChatMessages = [...chatMessages, { role: 'user', content: userMessage }, { role: 'assistant', content: data.message }];
+      const newChatMessages = [...chatMessages, { role: 'user' as const, content: userMessage }, { role: 'assistant' as const, content: data.message }];
       setChatMessages(newChatMessages);
 
       // For custom solutions, store the latest AI response
@@ -3604,7 +3604,7 @@ Respond ONLY with valid JSON, no markdown, no backticks:
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = `${solution.categoryColor}08`;
                       }}
-                      onClick={() => loadSavedSolution(solution)}
+                      onClick={() => {/* TODO: Implement loadSavedSolution */}}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
                         <span style={{ fontSize: "16px" }}>{solution.categoryIcon}</span>

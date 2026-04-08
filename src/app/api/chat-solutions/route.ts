@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
 
     // If there's conversation history, prepend it
     if (messages && Array.isArray(messages) && messages.length > 0) {
-      conversationMessages.unshift(...messages.map((msg: any) => ({
-        role: msg.role as 'user' | 'assistant',
+      conversationMessages.unshift(...messages.filter((msg: any) => msg.role === 'user' || msg.role === 'assistant').map((msg: any) => ({
+        role: msg.role as 'user',
         content: msg.content
       })));
     }
